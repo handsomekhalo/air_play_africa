@@ -10,7 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import os
 from pathlib import Path
+from decouple import config
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,10 +23,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-gf%q5gzkn=#1awp^@hrhx80k466x4!w%bq7rm=#96=$v*o_%g3'
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+
+# ALLOWED_HOSTS = ['*'] if DEBUG else config("ALLOWED_HOSTS").split(",")
 
 ALLOWED_HOSTS = []
 
@@ -37,6 +42,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+     'rest_framework',
+     'rest_framework.authtoken',
+     'rest_framework_simplejwt',
+    'corsheaders',
+
 ]
 
 MIDDLEWARE = [
@@ -73,13 +83,33 @@ WSGI_APPLICATION = 'air_play.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': config('DB_NAME'),
+        'USER': config('DB_USER'),
+        'PASSWORD': config('DB_PASSWORD'),
+        'HOST': config('DB_HOST'),
+        'PORT': config('DB_PORT'),
     }
 }
 
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.TokenAuthentication',
+        
+        
+
+    ),
+    'EXPIRY_MINUTES': 30,  # Token will expire after 30 minutes
+
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -116,8 +146,39 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+
+
+
+CORS_ALLOW_CREDENTIALS = True  # Important for sending cookies cross-domain
+
+
+# If you need to expose specific headers:
+CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
+
+# Tell Django it's behind a trusted proxy (NGINX)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'http')
+
+# Ensure you're not forcing SSL unless you're using HTTPS via AWS ACM/Load Balancer
+SECURE_SSL_REDIRECT = False
+
+#for dhango cross site  settings
+
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SECURE = False
+
+
+
+# BACKBLAZE
+BACK_BLAZE_KEY_ID = config('BACK_BLAZE_KEY_ID')
+BACK_BLAZE_KEY_NAME = config('BACK_BLAZE_KEY_NAME')
+BACK_BLAZE_BUCKET_NAME = config('BACK_BLAZE_BUCKET_NAME')
+BACK_BLAZE_APLLICATION_KEY =config('BACK_BLAZE_APLLICATION_KEY')

@@ -28,9 +28,9 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-# ALLOWED_HOSTS = ['*'] if DEBUG else config("ALLOWED_HOSTS").split(",")
+ALLOWED_HOSTS = ['*'] if DEBUG else config("ALLOWED_HOSTS").split(",")
 
-ALLOWED_HOSTS = []
+# ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -49,7 +49,9 @@ INSTALLED_APPS = [
 
 ]
 
+
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -57,6 +59,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # 'corsheaders.middleware.CorsMiddleware',
+
 ]
 
 ROOT_URLCONF = 'air_play.urls'
@@ -156,6 +160,40 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 
+# Session and CSRF Security
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = False  # Change to True in production with HTTPS
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = 'Lax'  # Or 'Strict'/'None' based on your use case
+CSRF_COOKIE_NAME = "csrftoken"
+CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
+CSRF_USE_SESSIONS = False
+
+
+CORS_ALLOW_CREDENTIALS = True
+# CORS_ORIGIN_ALLOW_ALL = False  # Good for security
+# Or for development, you can use:
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",  # If you're running frontend locally
+    "http://localhost:3000",
+    # "http://52.14.111.23",
+  # Your Next.js dev server
+    
+    
+]
+
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+    # "http://56.228.24.233",
+    # "http://52.14.111.23",
+
+]
 
 
 CORS_ALLOW_CREDENTIALS = True  # Important for sending cookies cross-domain

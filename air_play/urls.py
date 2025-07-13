@@ -14,9 +14,39 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+# from django.contrib import admin
+# from django.urls import path
+
+# urlpatterns = [
+#     path('admin/', admin.site.urls),
+# ]
 from django.contrib import admin
-from django.urls import path
+from django.shortcuts import redirect
+from django.urls import path , include, re_path, include
+from system_management import views
+
+
+
+
+# Define the redirect to Next.js frontend
+# def login_view(request):
+#     return redirect('http://localhost:3000') 
+
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('', views.login_view),  # Root URL will redirect to Next.js landing page
+    # path('', redirect_to_nextjs),  # Root URL will redirect to Next.js landing page
+    # path('', views.login_view, name='login_view'),
+    # path('system_management/', include('system_management.urls')),
+    # path('system_management_api/', include('system_management.api.urls')),
+
+    # path('question_management/', include('question_management.urls')),
+    # path('question_management_api/', include('question_management.api.urls')),
+    # path('application_management/', include('application_management.urls')),
+    #  path('application_management_api/', include('application_management.api.urls')),
+    # path('form_portal_management/', include('form_portal_management.urls')),
+    # path('form_portal_management_api/', include('form_portal_management.api.urls')),
+
 ]

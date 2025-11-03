@@ -17,6 +17,9 @@ const RegisterPage = () => {
     password: '',
     confirm_password: '',
   });
+  const formId = 2;       // or dynamically fetched
+const clientId = 1;     // or dynamically fetched
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
@@ -154,114 +157,16 @@ const RegisterPage = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4 mt-6 sm:mx-auto sm:w-full sm:max-w-sm">
-        {/* Form fields remain the same */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="first_name" className="block text-sm font-medium text-gray-700">First Name</label>
-            <input
-              id="first_name"
-              type="text"
-              value={form.first_name}
-              onChange={handleChange}
-              required
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="last_name" className="block text-sm font-medium text-gray-700">Last Name</label>
-            <input
-              id="last_name"
-              type="text"
-              value={form.last_name}
-              onChange={handleChange}
-              required
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-        </div>
 
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email Address</label>
-          <input
-            id="email"
-            type="email"
-            value={form.email}
-            onChange={handleChange}
-            required
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-          />
-        </div>
+<iframe
 
-        <div>
-          <label htmlFor="phone_number" className="block text-sm font-medium text-gray-700">Phone Number</label>
-          <input
-            id="phone_number"
-            type="tel"
-            maxLength={10}
-            pattern="[0-9]{10,11}"
-            value={form.phone_number}
-            onChange={handleChange}
-            required
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-          />
-        </div>
+  src={`http://3.144.218.251/form_portal_management/get_all_form_details_no_token/${formId}/`}
+  width="100%"
+  height="1000px"
+  style={{ border: 'none' }}
+  title="Form Portal"
+/>
 
-        <div className="relative">
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
-          <input
-            id="password"
-            type={showPassword ? 'text' : 'password'}
-            value={form.password}
-            onChange={handleChange}
-            required
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-          />
-          <div
-            className="absolute inset-y-0 right-3 top-[38px] flex items-center cursor-pointer"
-            onClick={() => setShowPassword(!showPassword)}
-          >
-            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-          </div>
-        </div>
-
-        <div className="relative">
-          <label htmlFor="confirm_password" className="block text-sm font-medium text-gray-700">Confirm Password</label>
-          <input
-            id="confirm_password"
-            type={showConfirmPassword ? 'text' : 'password'}
-            value={form.confirm_password}
-            onChange={handleChange}
-            required
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-          />
-          <div
-            className="absolute inset-y-0 right-3 top-[38px] flex items-center cursor-pointer"
-            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-          >
-            {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-          </div>
-        </div>
-
-        <button
-          type="submit"
-          disabled={isSubmitting || apiStatus.status === 'error'}
-          className={`w-full mt-4 ${
-            isSubmitting || apiStatus.status === 'error' 
-              ? 'bg-gray-400' 
-              : 'bg-indigo-600 hover:bg-indigo-500'
-          } text-white font-medium py-2 px-4 rounded-md`}
-        >
-          {isSubmitting ? 'Registering...' : 'Register'}
-        </button>
-
-        {/* Show errors if any */}
-        {Object.keys(errors).length > 0 && (
-          <div className="mt-4 text-red-500">
-            {Object.values(errors).map((error, index) => (
-              <p key={index}>{error}</p>
-            ))}
-          </div>
-        )}
       </form>
     </div>
   );

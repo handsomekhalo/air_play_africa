@@ -1,6 +1,7 @@
 # User Types
-ADMIN = "ADMIN"
-APPLICANT = "Applicant"
+ADMIN = "Admin"
+ARTIST = "Artist"
+LISTENER = "Listener"
 
 # application types
 EMPTY = ''

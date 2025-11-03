@@ -28,3 +28,18 @@ tzdata==2024.1
 urllib3==2.2.2
 whitenoise==6.8.2
 django-cors-headers==4.7.0
+
+#pip install django djangorestframework django-filter pillow web3
+#pip install celery redis
+toolz==1.1.0
+types-requests==2.32.4.20250913
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+tzdata==2025.2
+urllib3==2.2.2
+vine==5.1.0
+wcwidth==0.2.14
+web3==7.14.0
+websockets==15.0.1
+whitenoise==6.8.2
+yarl==1.22.0

@@ -1,17 +1,19 @@
 from django.db import models
-from django.contrib.auth.models import User  # Extend User for artists/fans
+from django.conf import settings  # ✅ use this instead of django.contrib.auth.models.User
 from django.utils import timezone
 import uuid  # For unique listener IDs
 
+
 class Artist(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     bio = models.TextField(blank=True)
     location = models.CharField(max_length=100, default='Africa')  # Tie to cultural focus
     wallet_address = models.CharField(max_length=42, blank=True)  # For blockchain payouts (e.g., ETH/Solana)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.user.username
+        return self.user.email  # ✅ safer, since you removed username from your custom User
+
 
 class Track(models.Model):
     artist = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='tracks')
@@ -23,11 +25,12 @@ class Track(models.Model):
     merit_score = models.FloatField(default=0.0)  # Calculated based on engagement
 
     def __str__(self):
-        return f"{self.title} by {self.artist.user.username}"
+        return f"{self.title} by {self.artist.user.email}"
+
 
 class Stream(models.Model):
     track = models.ForeignKey(Track, on_delete=models.CASCADE, related_name='streams')
-    listener = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)  # Fan user
+    listener = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     listen_time = models.FloatField(default=0.0)  # Seconds listened (for merit)
     timestamp = models.DateTimeField(auto_now_add=True)
     ip_address = models.GenericIPAddressField(blank=True, null=True)  # For anti-fraud (detect bots)
@@ -39,15 +42,17 @@ class Stream(models.Model):
     def __str__(self):
         return f"Stream of {self.track.title} at {self.timestamp}"
 
+
 class Tip(models.Model):
     track = models.ForeignKey(Track, on_delete=models.CASCADE, related_name='tips')
-    tipper = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    tipper = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)  # In USD or crypto equivalent
     timestamp = models.DateTimeField(auto_now_add=True)
     tx_hash = models.CharField(max_length=66, blank=True)  # Blockchain transaction hash for verification
 
     def __str__(self):
         return f"Tip of {self.amount} for {self.track.title}"
+
 
 class BlockchainLog(models.Model):
     related_model = models.CharField(max_length=50)  # e.g., 'Tip' or 'Payout'

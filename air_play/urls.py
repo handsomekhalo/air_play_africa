@@ -41,6 +41,9 @@ urlpatterns = [
     # path('', views.login_view, name='login_view'),
     path('system_management/', include('system_management.urls')),
     path('system_management_api/', include('system_management.api.urls')),
+    path('media_streaming_management/', include('media_streaming_management.urls')),
+    path('media_streaming_management_api/', include('media_streaming_management.api.urls')),
+
 
     # path('question_management/', include('question_management.urls')),
     # path('question_management_api/', include('question_management.api.urls')),

@@ -1,9 +1,11 @@
 from django.db import models
+
+# Create your models here.
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.db import models
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import gettext_lazy as _
-import system_management.constants as constants  # Assuming this has 'ADMIN', 'ARTIST', 'LISTENER'
-
+import system_management.constants as constants
 class UserType(models.Model):
     name = models.CharField(max_length=50)
 

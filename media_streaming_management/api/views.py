@@ -1,3 +1,4 @@
+import json
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -100,9 +101,24 @@ def upload_track_api(request):
         artist_name = f"{artist.user.first_name} {artist.user.last_name}"
         try:
             ai_data = analyze_track_with_ai(temp_path, track.title, artist_name)
+
+            print('ai data', ai_data)
             if ai_data:
                 track.bpm = ai_data.get('bpm')
-                ai_analysis = json.loads(ai_data.get('ai_analysis', '{}'))
+                # ai_analysis = json.loads(ai_data.get('ai_analysis', '{}'))
+                raw_ai = ai_data.get('ai_analysis', '{}')
+
+                # Remove backticks and "json"
+                def clean_json_string(s: str):
+                    s = s.strip()
+                    if s.startswith("```"):
+                        s = s.strip("`")
+                        s = s.replace("json", "", 1).strip()
+                    return s
+
+
+                cleaned = clean_json_string(raw_ai)
+                ai_analysis = json.loads(cleaned)
                 track.ai_genre = ai_analysis.get('genre', '')
                 track.ai_mood = ai_analysis.get('mood', '')
                 track.ai_description = ai_analysis.get('description', '')

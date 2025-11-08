@@ -97,3 +97,6 @@ venv/
 #Ignore vscode AI rules
 .github\instructions\codacy.instructions.md
 air_play_venv
+air_play_venv/
+venv/
+.env/

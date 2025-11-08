@@ -16,6 +16,7 @@ class Artist(models.Model):
 
 
 class Track(models.Model):
+<<<<<<< HEAD
     STATUS_CHOICES = [
         ('uploading', 'Uploading'),
         ('processing', 'Processing'),
@@ -76,6 +77,18 @@ class Track(models.Model):
 
 #     def __str__(self):
 #         return f"{self.title} by {self.artist.user.email}"
+=======
+    artist = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='tracks')
+    title = models.CharField(max_length=255)
+    genre = models.CharField(max_length=100)  # e.g., Afrobeat, Amapiano
+    audio_file = models.FileField(upload_to='tracks/')  # Store MP3s, etc.
+    cover_image = models.ImageField(upload_to='covers/', blank=True)
+    upload_date = models.DateTimeField(auto_now_add=True)
+    merit_score = models.FloatField(default=0.0)  # Calculated based on engagement
+
+    def __str__(self):
+        return f"{self.title} by {self.artist.user.email}"
+>>>>>>> 7c24009ebcb6078cb604e4141a1f3d139bbf393e
 
 
 class Stream(models.Model):

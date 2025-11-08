@@ -43,6 +43,7 @@ web3==7.14.0
 websockets==15.0.1
 whitenoise==6.8.2
 yarl==1.22.0
+<<<<<<< HEAD
 
 
 #for audio
@@ -149,3 +150,5 @@ web3==7.14.0
 websockets==15.0.1
 whitenoise==6.8.2
 yarl==1.22.0
+=======
+>>>>>>> 7c24009ebcb6078cb604e4141a1f3d139bbf393e

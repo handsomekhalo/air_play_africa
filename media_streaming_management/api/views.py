@@ -1,7 +1,6 @@
-<<<<<<< HEAD
+
 import json
-=======
->>>>>>> 7c24009ebcb6078cb604e4141a1f3d139bbf393e
+
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -11,7 +10,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import get_user_model
-<<<<<<< HEAD
+
 from system_management.storage_util import upload_track_to_backblaze, upload_cover_image_to_backblaze
 from system_management.ai_services import analyze_track_with_ai
 from mutagen import File as MutagenFile
@@ -23,18 +22,11 @@ import tempfile
 from media_streaming_management.api.serialziers import BlockchainLogSerializer, TipSerializer, TrackSerializer, UploadTrackSerializer
 from system_management.models import UserType
 from system_management.permissions import IsAdminUserType
-=======
-
 from system_management.models import UserType
->>>>>>> 7c24009ebcb6078cb604e4141a1f3d139bbf393e
+from system_management.models import UserType
 User = get_user_model()
-
-
 from django.db.models import Avg, Count
-<<<<<<< HEAD
-=======
 from media_streaming_management.api.serialziers import AdminCreateSerializer, ArtistCreateSerializer, ArtistSerializer, BlockchainLogSerializer, GetAlltUserModelSerializer, GetArtistProfileSerializer, ListenerCreateSerializer, StreamSerializer, TipSerializer, TrackSerializer, UpdateArtistProfileSerializer, UserModelSerializer, UserTypeModelSerializer,GetArtistSerializer
->>>>>>> 7c24009ebcb6078cb604e4141a1f3d139bbf393e
 from media_streaming_management.models import Artist, BlockchainLog, Track
 from web3 import Web3  # For blockchain placeholder
 import os
@@ -46,12 +38,8 @@ w3 = Web3(Web3.HTTPProvider(WEB3_PROVIDER))
 # Mock smart contract address/ABI - replace with real one for payouts
 CONTRACT_ADDRESS = '0xYourContractAddress'
 CONTRACT_ABI = []  # ABI here
-
-
-<<<<<<< HEAD
-
 from rest_framework.decorators import api_view, permission_classes, parser_classes
-=======
+
 @api_view(['POST'])
 @permission_classes([AllowAny]) # ✅ Public endpoint
 def register_artist_api(request):
@@ -331,12 +319,10 @@ def update_artist_profile_api(request):
         }
         return Response(data, status=status.HTTP_400_BAD_REQUEST)
 
->>>>>>> 7c24009ebcb6078cb604e4141a1f3d139bbf393e
 
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-<<<<<<< HEAD
 @parser_classes([MultiPartParser, FormParser])
 def upload_track_api(request):
     """
@@ -474,7 +460,8 @@ def upload_track_api(request):
 #         serializer.save(artist=artist)
 #         return Response(serializer.data, status=status.HTTP_201_CREATED)
 #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-=======
+
+@api_view(['POST'])
 def upload_track_api(request):
     """Upload a new track (artist only)."""
     try:
@@ -486,7 +473,8 @@ def upload_track_api(request):
         serializer.save(artist=artist)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
->>>>>>> 7c24009ebcb6078cb604e4141a1f3d139bbf393e
+
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])  # Fans can stream anonymously, but track for anti-fraud

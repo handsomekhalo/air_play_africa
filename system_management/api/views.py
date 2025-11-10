@@ -3,21 +3,23 @@ from datetime import datetime
 import json
 import random
 from requests import Response
-<<<<<<< HEAD
+
 from media_streaming_management.models import Artist
 from system_management import constants
-from system_management.api.serializers import  AdminCreateSerializer, AdminUpdateSerializer, ArtistCreateSerializer, GetAlltUserModelSerializer, GetArtistProfileSerializer, GetArtistSerializer, ListenerCreateSerializer, UpdateArtistProfileSerializer, UserModelSerializer, UserTypeModelSerializer
-=======
+from system_management.api.serializers import  AdminCreateSerializer, AdminUpdateSerializer, ArtistCreateSerializer, ArtistSerializer, GetAlltUserModelSerializer, GetArtistProfileSerializer, GetArtistSerializer, ListenerCreateSerializer, UpdateArtistProfileSerializer, UserModelSerializer, UserTypeModelSerializer
+
 from system_management import constants
 from system_management.api.serializers import  UserModelSerializer
->>>>>>> 7c24009ebcb6078cb604e4141a1f3d139bbf393e
+
+from system_management import constants
+from system_management.api.serializers import  UserModelSerializer
 from system_management.models import User, UserType
 from rest_framework.permissions import AllowAny
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from rest_framework.response import Response
 from rest_framework import status
-<<<<<<< HEAD
+
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -33,8 +35,7 @@ from system_management.permissions import IsAdminUserType
 User = get_user_model()
 
 
-=======
->>>>>>> 7c24009ebcb6078cb604e4141a1f3d139bbf393e
+
 
 
 from rest_framework.decorators import api_view, permission_classes
@@ -51,11 +52,8 @@ from rest_framework.decorators import (
     permission_classes
 )
 
-<<<<<<< HEAD
 from system_management.permissions import IsAdminUserType
 
-=======
->>>>>>> 7c24009ebcb6078cb604e4141a1f3d139bbf393e
 
 
 @api_view(["POST"])
@@ -106,7 +104,7 @@ def login_api(request):
         },
         status=status.HTTP_200_OK,
     )
-<<<<<<< HEAD
+
 
 
 
@@ -463,5 +461,4 @@ def update_admin_profile_api(request):
             'message': 'Admin profile update failed due to validation or internal error.',
             'errors': error_details
         }, status=status.HTTP_400_BAD_REQUEST)
-=======
->>>>>>> 7c24009ebcb6078cb604e4141a1f3d139bbf393e
+

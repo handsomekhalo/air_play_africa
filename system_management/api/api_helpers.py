@@ -116,7 +116,7 @@ def send_email_api(request):
             })
 
             return Response(response_dict, status=status.HTTP_400_BAD_REQUEST)
-<<<<<<< HEAD
+
 
 def clean_json_string(s: str):
     if s.startswith("```"):
@@ -125,5 +125,4 @@ def clean_json_string(s: str):
         # Remove "json" if present
         s = s.replace("json", "", 1).strip()
     return s
-=======
->>>>>>> 7c24009ebcb6078cb604e4141a1f3d139bbf393e
+

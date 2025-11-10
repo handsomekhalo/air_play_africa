@@ -1,10 +1,5 @@
 from rest_framework import serializers
 
-<<<<<<< HEAD
-from media_streaming_management.models import BlockchainLog, Stream, Tip, Track
-
-
-=======
 from media_streaming_management.models import Artist, BlockchainLog, Stream, Tip, Track
 from system_management.api.serializers import UserModelSerializer
 from system_management.models import Profile, User, UserType
@@ -245,37 +240,10 @@ class ListArtistSerializer(serializers.ModelSerializer):
         model = Artist
         fields = '__all__'
 
->>>>>>> 7c24009ebcb6078cb604e4141a1f3d139bbf393e
 class TrackSerializer(serializers.ModelSerializer):
     class Meta:
         model = Track
         fields = '__all__'
-<<<<<<< HEAD
-class UploadTrackSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Track
-        fields = '__all__'
-        read_only_fields = [
-            'artist',
-            'stream_url',
-            'cover_image_url',
-            'duration',
-            'bpm',
-            'file_size',
-            'status',
-            'play_count',
-            'like_count',
-            'download_count',
-            'upload_date',
-            'last_modified',
-            'ai_genre',
-            'ai_mood',
-            'ai_description',
-            'ai_tags',
-        ]
-
-=======
->>>>>>> 7c24009ebcb6078cb604e4141a1f3d139bbf393e
 
 class StreamSerializer(serializers.ModelSerializer):
     class Meta:
@@ -290,13 +258,4 @@ class TipSerializer(serializers.ModelSerializer):
 class BlockchainLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = BlockchainLog
-<<<<<<< HEAD
         fields = '__all__'
-
-
-# UserModelSerializer   
-
-
-=======
-        fields = '__all__'
->>>>>>> 7c24009ebcb6078cb604e4141a1f3d139bbf393e

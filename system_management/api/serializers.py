@@ -1,13 +1,14 @@
-<<<<<<< HEAD
 from media_streaming_management.models import Artist, BlockchainLog, Stream, Tip, Track
 from system_management import constants
 from system_management.models import  Profile, User
-=======
+
 from system_management import constants
 from system_management.models import  User
->>>>>>> 7c24009ebcb6078cb604e4141a1f3d139bbf393e
-from system_management.general_func_classes import BaseFormSerializer
 
+from system_management import constants
+from system_management.models import  User
+
+from system_management.general_func_classes import BaseFormSerializer
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from system_management.models import UserType
@@ -70,7 +71,6 @@ class UserModelSerializer(serializers.ModelSerializer):
             "user_type__name",
         )
 
-<<<<<<< HEAD
 
 class ArtistSerializer(serializers.ModelSerializer):
     """Serializer for Artist profile with nested user"""
@@ -342,5 +342,4 @@ class ListArtistSerializer(serializers.ModelSerializer):
     class Meta:
         model = Artist
         fields = '__all__'
-=======
->>>>>>> 7c24009ebcb6078cb604e4141a1f3d139bbf393e
+

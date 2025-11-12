@@ -9,5 +9,10 @@ from system_management.api.api_helpers import send_email_api
 urlpatterns = [
 
     path('upload_track_api/', views.upload_track_api, name='upload_track_api'),
+    path('retrieve_track_api/<int:track_id>/', views.retrieve_track_api, name='retrieve_track_api'),
+    path('retrieve_all_tracks_api/', views.retrieve_all_tracks_api, name='retrieve_all_tracks_api'),
+    path('my_tracks_api/', views.my_tracks_api, name='my_tracks_api'),
+
+
 
 ]

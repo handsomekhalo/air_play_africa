@@ -240,6 +240,90 @@ class ListArtistSerializer(serializers.ModelSerializer):
         model = Artist
         fields = '__all__'
 
+
+class UploadTrackSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Track
+        fields = '__all__'
+        read_only_fields = [
+            'artist',
+            'stream_url',
+            'cover_image_url',
+            'duration',
+            'bpm',
+            'file_size',
+            'status',
+            'play_count',
+            'like_count',
+            'download_count',
+            'upload_date',
+            'last_modified',
+            'ai_genre',
+            'ai_mood',
+            'ai_description',
+            'ai_tags',
+        ]
+
+class GetSingleTrackListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Track
+        fields = '__all__'  # This is OK
+        read_only_fields = [  # Must be a list, not '__all__'
+            'id',
+            'title',
+            'genre',
+            'ai_genre',
+            'ai_mood',
+            'cover_image_url',
+            'stream_url',
+            'duration',
+            'artist',
+        ]
+class GetAllTracksDetailSerializer(serializers.ModelSerializer):
+    artist_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Track
+        fields = '__all__'
+        read_only_fields = [
+            'id',
+            'stream_url',
+            'cover_image_url',
+            'ai_genre',
+            'ai_mood',
+            'ai_description',
+            'ai_tags',
+            'duration',
+            'bpm',
+            'file_size',
+            'status',
+            'play_count',
+            'like_count',
+            'download_count',
+            'upload_date',
+            'last_modified',
+        ]
+    
+    def get_artist_name(self, obj):
+        return f"{obj.artist.user.first_name} {obj.artist.user.last_name}"
+
+
+
+class GetAllArtistTrackListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Track
+        fields = [
+            'id',
+            'title',
+            'genre',
+            'ai_genre',
+            'ai_mood',
+            'cover_image_url',
+            'stream_url',
+            'duration',
+            'artist',
+        ]
+
 class TrackSerializer(serializers.ModelSerializer):
     class Meta:
         model = Track

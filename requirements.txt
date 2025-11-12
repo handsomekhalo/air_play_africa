@@ -110,6 +110,8 @@ numba==0.62.1
 
 numpy==1.26.4
 
+openai==2.7.1
+
 openpyxl==3.1.4
 
 packaging==25.0

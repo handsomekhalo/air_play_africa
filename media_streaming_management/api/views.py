@@ -19,7 +19,7 @@ from rest_framework.decorators import api_view, parser_classes
 
 import os
 import tempfile
-from media_streaming_management.api.serialziers import BlockchainLogSerializer, TipSerializer, TrackSerializer, UploadTrackSerializer
+from media_streaming_management.api.serialziers import BlockchainLogSerializer, GetAllArtistTrackListSerializer, GetAllTracksDetailSerializer, GetSingleTrackListSerializer, TipSerializer, TrackSerializer, UploadTrackSerializer
 from system_management.models import UserType
 from system_management.permissions import IsAdminUserType
 from system_management.models import UserType
@@ -40,284 +40,6 @@ CONTRACT_ADDRESS = '0xYourContractAddress'
 CONTRACT_ABI = []  # ABI here
 from rest_framework.decorators import api_view, permission_classes, parser_classes
 
-@api_view(['POST'])
-@permission_classes([AllowAny]) # ✅ Public endpoint
-def register_artist_api(request):
-    """
-    Public artist registration using ArtistCreateSerializer.
-    """
-    try:
-        # Use ArtistCreateSerializer(data=request.data)
-        serializer = ArtistCreateSerializer(data=request.data)
-        
-        # call serializer.is_valid(raise_exception=True)
-        serializer.is_valid(raise_exception=True)
-        
-        # then serializer.save()
-        artist = serializer.save() 
-        
-        # and return ArtistSerializer(artist).data for response.
-        return Response(
-            ArtistSerializer(artist).data, 
-            status=status.HTTP_201_CREATED
-        )
-        
-    except Exception as e:
-        # This will catch internal errors (e.g., UserType not found) 
-        # that weren't covered by the serializer validation.
-        return Response({
-            'status': 'error',
-            'message': 'Artist registration failed due to an internal server error or configuration issue.',
-            'details': str(e)
-        }, status=status.HTTP_400_BAD_REQUEST)
-
-
-## 🎧 register_listener_api
-
-@api_view(['POST'])
-@permission_classes([AllowAny]) # ✅ Public endpoint
-def register_listener_api(request):
-    """
-    Public listener/subscriber registration using ListenerCreateSerializer.
-    """
-    try:
-        # Use ListenerCreateSerializer(data=request.data)
-        serializer = ListenerCreateSerializer(data=request.data)
-        
-        # call serializer.is_valid(raise_exception=True)
-        serializer.is_valid(raise_exception=True)
-        
-        # then serializer.save() (saves the User object)
-        user = serializer.save() 
-        
-        # and return UserModelSerializer(user).data for response.
-        return Response(
-            UserModelSerializer(user).data,
-            status=status.HTTP_201_CREATED
-        )
-        
-    except Exception as e:
-        return Response({
-            'status': 'error',
-            'message': 'Listener registration failed due to an internal server error or configuration issue.',
-            'details': str(e)
-        }, status=status.HTTP_400_BAD_REQUEST)
-
-
-## 👑 create_admin_api
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated]) # ✅ Requires auth
-def create_admin_api(request):
-    """
-    Admin-only: Create new admin accounts using AdminCreateSerializer.
-    """
-    # Check if requester is admin (best handled by a custom Permission class, 
-    # but keeping inline for simplicity based on original code)
-    if not request.user.is_authenticated or request.user.user_type.name != 'Admin':
-        return Response({
-            'status': 'error',
-            'message': 'Only authenticated admins can create admin accounts.'
-        }, status=status.HTTP_403_FORBIDDEN)
-        
-    try:
-        # Use AdminCreateSerializer with context={'request': request}
-        serializer = AdminCreateSerializer(
-            data=request.data,
-            context={'request': request} # Needed for user_created_by_id in .create()
-        )
-        
-        # call serializer.is_valid(raise_exception=True)
-        serializer.is_valid(raise_exception=True)
-        
-        # then serializer.save() (saves the Admin User object)
-        user = serializer.save()
-        
-        # and return UserModelSerializer(user).data for response.
-        return Response(
-            UserModelSerializer(user).data,
-            status=status.HTTP_201_CREATED
-        )
-        
-    except Exception as e:
-        return Response({
-            'status': 'error',
-            'message': 'Admin creation failed due to an internal server error or configuration issue.',
-            'details': str(e)
-        }, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-@permission_classes([AllowAny])
-@api_view(['GET'])
-def get_user_types_api(request):
-    """
-    Get all user types in the database
-
-    Args:
-        request:
-    Returns:
-        Response:
-            data:
-                status:
-                message:
-                data:
-            status code:
-    """
- 
-    if request.method == 'GET':
-
-        user_types = UserType.objects.all()
-        serializer = UserTypeModelSerializer(user_types, many=True)
-
-        try:
-            data = {
-                'status': "success",
-                'user_types': serializer.data
-            }
-            return Response(data, status=status.HTTP_200_OK)
-
-        except KeyError:
-            data = {
-                'status': "error",
-                'message': "Error during getting user types."
-            }
-            return Response(data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    else:
-        data = {
-            'status': "error",
-            'message': constants.INVALID_REQUEST_METHOD
-        }
-        return Response(data, status.HTTP_405_METHOD_NOT_ALLOWED)
-
-
-@api_view(['GET'])
-def get_all_users_api(request):
-
-    """
-    Get all users api
-
-    Args:
-        request:
-    Returns:
-        Response:
-            data:
-                - status
-                - message
-                - data
-            status code:
-    """
-    if request.method == "GET":
-        users = User.objects.all()
-
-        serializer = GetAlltUserModelSerializer(users, many=True).data
-
-        try:
-            data = {
-                'status': "success",
-                'users': serializer
-            }
-            return Response(data, status=status.HTTP_200_OK)
-
-        except KeyError:
-            data = {
-                'status': "error",
-                'message': "Error during getting users."
-            }
-            return Response(data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    else:
-        data = {
-            'status': "error",
-            'message': "Invalid request method."
-        }
-        return Response(data, status.HTTP_405_METHOD_NOT_ALLOWED)
-
-
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_artist_api(request):
-    try:
-        artist = Artist.objects.get(user=request.user)
-    except Artist.DoesNotExist:
-        return Response({'error': 'Artist profile not found'}, status=status.HTTP_404_NOT_FOUND)
-
-    serializer = GetArtistSerializer(artist)
-    return Response(serializer.data)
-
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_artist_profile_api(request):
-    """Get logged-in artist's profile."""
-    try:
-        artist = Artist.objects.get(user=request.user)
-        data = {
-            'status': 'success',
-            'data': GetArtistProfileSerializer(artist).data
-        }
-        return Response(data, status=status.HTTP_200_OK)
-    except Artist.DoesNotExist:
-        data = {
-            'status': 'error',
-            'message': 'Artist profile not found.'
-        }
-        return Response(data, status=status.HTTP_404_NOT_FOUND)
-
-
-@api_view(['PUT', 'PATCH'])  # ✅ Changed from POST
-@permission_classes([IsAuthenticated])
-def update_artist_profile_api(request):
-    """
-    Update logged-in artist's profile.
-    Only the artist themselves can update their profile.
-    
-    PUT/PATCH data:
-    {
-        "bio": "Updated bio...",
-        "location": "Accra, Ghana",
-        "wallet_address": "0x..."
-    }
-    """
-    user_type_name = request.user.user_type.name if request.user.user_type else None
-    
-    # Only artists can update their profile
-    if user_type_name != 'Artist':
-        data = {
-            'status': 'error',
-            'message': 'Only artists can update artist profiles.'
-        }
-        return Response(data, status=status.HTTP_403_FORBIDDEN)
-    
-    try:
-        artist = Artist.objects.get(user=request.user)
-    except Artist.DoesNotExist:
-        data = {
-            'status': 'error',
-            'message': 'Artist profile not found.'
-        }
-        return Response(data, status=status.HTTP_404_NOT_FOUND)
-    
-    # Partial update
-    serializer = UpdateArtistProfileSerializer(artist, data=request.data, partial=True)
-    
-    if serializer.is_valid():
-        serializer.save()
-        data = {
-            'status': 'success',
-            'message': 'Artist profile updated successfully.',
-            'data': serializer.data
-        }
-        return Response(data, status=status.HTTP_200_OK)
-    else:
-        data = {
-            'status': 'error',
-            'message': 'Validation failed',
-            'errors': serializer.errors
-        }
-        return Response(data, status=status.HTTP_400_BAD_REQUEST)
 
 
 
@@ -447,32 +169,65 @@ def upload_track_api(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-# @api_view(['POST'])
-# @permission_classes([IsAuthenticated])
-# def upload_track_api(request):
-#     """Upload a new track (artist only)."""
-#     try:
-#         artist = request.user.artist
-#     except Artist.DoesNotExist:
-#         return Response({'error': 'Not an artist'}, status=status.HTTP_403_FORBIDDEN)
-#     serializer = TrackSerializer(data=request.data)
-#     if serializer.is_valid():
-#         serializer.save(artist=artist)
-#         return Response(serializer.data, status=status.HTTP_201_CREATED)
-#     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-@api_view(['POST'])
-def upload_track_api(request):
-    """Upload a new track (artist only)."""
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def retrieve_track_api(request, track_id):
     try:
-        artist = request.user.artist
-    except Artist.DoesNotExist:
-        return Response({'error': 'Not an artist'}, status=status.HTTP_403_FORBIDDEN)
-    serializer = TrackSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save(artist=artist)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        track = Track.objects.get(id=track_id)
+    except Track.DoesNotExist:
+        return Response({
+            'status': 'error',
+            'message': 'Track not found.'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    serializer = GetSingleTrackListSerializer(track, context={'request': request})
+
+    print('serizlizer',serializer)
+    return Response({
+        'status': 'success',
+        'data': serializer.data
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])   # optional — depends on your platform
+def retrieve_all_tracks_api(request):
+    queryset = Track.objects.filter(status='ready').order_by('-upload_date')
+
+    # Optional filters
+    genre = request.GET.get('genre')
+    mood = request.GET.get('mood')
+    artist = request.GET.get('artist')
+
+    if genre:
+        queryset = queryset.filter(genre__icontains=genre)
+
+    if mood:
+        queryset = queryset.filter(ai_mood__icontains=mood)
+
+    if artist:
+        queryset = queryset.filter(artist__user__first_name__icontains=artist)
+
+    serializer = GetAllTracksDetailSerializer(queryset, many=True, context={'request': request})
+
+    print('serializer data', serializer.data)
+    return Response({
+        'status': 'success',
+        'data': serializer.data
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def my_tracks_api(request):
+    artist = request.user.artist
+    queryset = Track.objects.filter(artist=artist).order_by('-upload_date')
+
+    serializer = GetAllArtistTrackListSerializer(queryset, many=True, context={'request': request})
+    return Response({
+        'status': 'success',
+        'data': serializer.data
+    }, status=status.HTTP_200_OK)
 
 
 

@@ -329,10 +329,14 @@ class TrackSerializer(serializers.ModelSerializer):
         model = Track
         fields = '__all__'
 
+# class StreamSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Stream
 class StreamSerializer(serializers.ModelSerializer):
     class Meta:
         model = Stream
-        fields = '__all__'
+        fields = ['id', 'track', 'listener', 'listen_time', 'timestamp', 'ip_address', 'session_id']
+        read_only_fields = ['id', 'timestamp', 'ip_address']
 
 class TipSerializer(serializers.ModelSerializer):
     class Meta:

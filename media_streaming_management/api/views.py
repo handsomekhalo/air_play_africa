@@ -1,6 +1,7 @@
 
 import json
 
+from django.db import IntegrityError
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -10,6 +11,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import get_user_model
+from django.db.models import Avg, Count
 
 from system_management.storage_util import upload_track_to_backblaze, upload_cover_image_to_backblaze
 from system_management.ai_services import analyze_track_with_ai
@@ -232,20 +234,100 @@ def my_tracks_api(request):
 
 
 @api_view(['POST'])
-@permission_classes([AllowAny])  # Fans can stream anonymously, but track for anti-fraud
+@permission_classes([AllowAny])
 def record_stream_api(request):
     """Record a stream (with anti-fraud check)."""
-    serializer = StreamSerializer(data=request.data)
+    data = request.data.copy()
+    
+    # Add IP address automatically
+    data['ip_address'] = request.META.get('REMOTE_ADDR')
+    
+    # Add listener if authenticated
+    if request.user.is_authenticated:
+        data['listener'] = request.user.id
+    
+    serializer = StreamSerializer(data=data)
+    
     if serializer.is_valid():
-        stream = serializer.save(ip_address=request.META.get('REMOTE_ADDR'))
-        # Update merit score (simple calc)
-        track = stream.track
-        avg_time = track.streams.aggregate(Avg('listen_time'))['listen_time__avg'] or 0
-        unique_listeners = track.streams.aggregate(Count('session_id', distinct=True))['session_id__count']
-        track.merit_score = (unique_listeners * avg_time) + track.tips.count()
-        track.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            stream = serializer.save()
+            
+            # Update merit score
+            track = stream.track
+            avg_time = track.streams.aggregate(Avg('listen_time'))['listen_time__avg'] or 0
+            unique_listeners = track.streams.values('session_id').distinct().count()
+            
+            # Check if tips relation exists
+            tips_count = track.tips.count() if hasattr(track, 'tips') else 0
+            
+            track.merit_score = (unique_listeners * avg_time) + tips_count
+            track.save(update_fields=['merit_score'])
+            
+            return Response({
+                'status': 'success',
+                'data': serializer.data
+            }, status=status.HTTP_201_CREATED)
+            
+        except IntegrityError:
+            # Handle duplicate session_id (anti-spam)
+            return Response({
+                'status': 'error',
+                'message': 'Stream already recorded for this session'
+            }, status=status.HTTP_400_BAD_REQUEST)
+    
+    return Response({
+        'status': 'error',
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
+# @api_view(['POST'])
+# @permission_classes([AllowAny])  # Fans can stream anonymously, but track for anti-fraud
+# def record_stream_api(request):
+#     """Record a stream (with anti-fraud check)."""
+#     serializer = StreamSerializer(data=request.data)
+#     if serializer.is_valid():
+#         stream = serializer.save(ip_address=request.META.get('REMOTE_ADDR'))
+#         # Update merit score (simple calc)
+#         track = stream.track
+#         avg_time = track.streams.aggregate(Avg('listen_time'))['listen_time__avg'] or 0
+#         unique_listeners = track.streams.aggregate(Count('session_id', distinct=True))['session_id__count']
+#         track.merit_score = (unique_listeners * avg_time) + track.tips.count()
+#         track.save()
+#         return Response(serializer.data, status=status.HTTP_201_CREATED)
+#     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+@api_view(['PATCH'])
+@permission_classes([AllowAny])
+def update_stream_api(request, session_id):
+    """Update listen time for an existing stream."""
+    try:
+        stream = Stream.objects.get(session_id=session_id)
+        listen_time = request.data.get('listen_time', stream.listen_time)
+        
+        # Only update if new time is greater (prevent fraud)
+        if listen_time > stream.listen_time:
+            stream.listen_time = listen_time
+            stream.save()
+            
+            # Recalculate merit score
+            track = stream.track
+            avg_time = track.streams.aggregate(Avg('listen_time'))['listen_time__avg'] or 0
+            unique_listeners = track.streams.aggregate(Count('session_id', distinct=True))['session_id__count']
+            track.merit_score = (unique_listeners * avg_time) + track.tips.count()
+            track.save()
+        
+        return Response({
+            'status': 'success',
+            'listen_time': stream.listen_time
+        }, status=status.HTTP_200_OK)
+        
+    except Stream.DoesNotExist:
+        return Response({
+            'status': 'error',
+            'message': 'Stream not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+    
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

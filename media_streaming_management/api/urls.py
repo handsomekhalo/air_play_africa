@@ -13,6 +13,8 @@ urlpatterns = [
     path('retrieve_all_tracks_api/', views.retrieve_all_tracks_api, name='retrieve_all_tracks_api'),
     path('my_tracks_api/', views.my_tracks_api, name='my_tracks_api'),
     path('record_stream_api/', views.record_stream_api, name='record_stream_api'),
+    path('update_stream_api/<str:session_id>/', views.update_stream_api, name='update_stream_api'),
+
 
 
 

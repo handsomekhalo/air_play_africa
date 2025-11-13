@@ -29,7 +29,7 @@ from system_management.models import UserType
 User = get_user_model()
 from django.db.models import Avg, Count
 from media_streaming_management.api.serialziers import AdminCreateSerializer, ArtistCreateSerializer, ArtistSerializer, BlockchainLogSerializer, GetAlltUserModelSerializer, GetArtistProfileSerializer, ListenerCreateSerializer, StreamSerializer, TipSerializer, TrackSerializer, UpdateArtistProfileSerializer, UserModelSerializer, UserTypeModelSerializer,GetArtistSerializer
-from media_streaming_management.models import Artist, BlockchainLog, Track
+from media_streaming_management.models import Artist, BlockchainLog, Stream, Track
 from web3 import Web3  # For blockchain placeholder
 import os
 

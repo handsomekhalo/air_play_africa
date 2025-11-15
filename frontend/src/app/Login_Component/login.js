@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '../../../../../AuthContext';
+import { useAuth } from '../../../AuthContext';
 import backendApi from '@/utils/backendApi';
 import { useRouter } from 'next/navigation';  // Correct import for App Router
 
@@ -81,7 +81,13 @@ export default function LoginPage() {
         // router.push('/Components/System_Management_Component/dashboard');
         
         setTimeout(() => {
-          router.push('/Components/System_Management_Component/dashboard');
+          router.push('/Components/System_Management_Components/dashboard');
+          // if (user.role === 'admin') {
+          //       router.push('/Components/System_Management_Components/dashboard');
+          //   } else if (user.role === 'artist') {
+          //       router.push('/artist/dashboard');
+          //   }
+
         }, 100);
       } else {
         console.log('Login failed:');

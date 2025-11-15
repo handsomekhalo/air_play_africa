@@ -16,6 +16,4 @@ urlpatterns = [
     path('update_stream_api/<str:session_id>/', views.update_stream_api, name='update_stream_api'),
 
 
-
-
 ]

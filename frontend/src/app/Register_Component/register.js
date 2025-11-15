@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import { useAuth } from '../../../../../AuthContext';
+import { useAuth } from '../../../AuthContext';
 import backendApi from '@/utils/backendApi';
 
 const RegisterPage = () => {

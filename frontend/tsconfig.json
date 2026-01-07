@@ -1,0 +1,47 @@
+{
+ 
+
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    },
+    "noImplicitAny": false,
+    "noUnusedParameters": false,
+    "skipLibCheck": true,
+    "allowJs": true,
+    "noUnusedLocals": false,
+    "strictNullChecks": false,
+    "target": "ES2017",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "strict": false,
+    "noEmit": true,
+    "incremental": true,
+    "module": "esnext",
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
+  },
+  "include": [
+    "next-env.d.ts",
+    ".next/types/**/*.ts",
+    "**/*.ts",
+    "**/*.tsx"
+, "src/app/Components/MetricCard.js", "src/app/Components/NavLink.js", "src/app/Components/RevenueChart.js", "src/app/Components/TrackAnalytics.js", "src/app/Components/hooks/use-mobile.js", "src/app/Components/hooks/use-toast.js", "src/app/Components/lib/utils.js", "src/app/Components/ui/alert.js", "src/app/Components/ui/aspect-ratio.js", "src/app/Components/ui/avatar.js", "src/app/Components/DashboardUIComponents/Metrics.js"  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

@@ -49,6 +49,7 @@ from rest_framework.decorators import api_view, permission_classes, parser_class
 @permission_classes([IsAuthenticated])
 @parser_classes([MultiPartParser, FormParser])
 def upload_track_api(request):
+    print("🚀 upload_track_api called")
     """
     Upload track to Backblaze with AI analysis.
     
@@ -63,15 +64,19 @@ def upload_track_api(request):
     # 1. Ensure user is an artist
     try:
         artist = request.user.artist
+        print("🚀 Artist found:", artist)
     except Artist.DoesNotExist:
+        print("🚀 User is not an artist")
         return Response({
             'status': 'error',
             'message': 'Only artists can upload tracks.'
         }, status=status.HTTP_403_FORBIDDEN)
 
     # 2. Validate base data with serializer
+    print("🚀 Request data:", request.data)
     serializer = UploadTrackSerializer(data=request.data, context={'request': request})
     if not serializer.is_valid():
+        print("🚀 Serializer errors:", serializer.errors)
         return Response({
             'status': 'error',
             'message': 'Validation failed.',
@@ -81,6 +86,7 @@ def upload_track_api(request):
     audio_file = request.FILES.get('audio_file')
     cover_image = request.FILES.get('cover_image')
     if not audio_file:
+        print("🚀 No audio file provided")
         return Response({
             'status': 'error',
             'message': 'Audio file is required.'

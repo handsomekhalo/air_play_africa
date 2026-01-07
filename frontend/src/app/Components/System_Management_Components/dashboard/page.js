@@ -1,12 +1,25 @@
 'use client';
 
-import React from 'react';
-import Dashboard from './dashboard'
+  import React from 'react';
 
-export default function DashboardPage() {
+import DashboardPage from '../../DashboardComponents/page'; 
+ import Navbar from './SideBarComponent/navheader';
+
+  export default function Dashboard() {
   return (
-    <div className="p-8">
-      <Dashboard />
+    
+    <div className="flex min-h-screen">
+      
+      {/* Sidebar on the left */}
+      {/* <Sidebar /> */}
+
+      {/* Dashboard content on the right */}
+      <div className="flex-1 p-8">
+        <Navbar />
+        <DashboardPage />
+      </div>
+
     </div>
   );
 }
+

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 // import LoginPage from './Login_Component/login';
 import LoginPage from './Login_Component/login';
-
+import ArtistRegister from './CreateArtistComponent/create_artist';
 // import RegisterPage from './Register_Component/register';// import Dashboard from './Components/System_Management_Component/dashboard/dashboard';
 export default function Home() {
   const [showLogin, setShowLogin] = useState(true);
@@ -28,7 +28,7 @@ export default function Home() {
           </>
         ) : (
           <>
-            {/* <RegisterPage /> */}
+            <ArtistRegister />
             <p className="text-sm mt-4">
               Already have an account?{' '}
               <button

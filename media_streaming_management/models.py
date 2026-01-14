@@ -9,6 +9,8 @@ class Artist(models.Model):
     bio = models.TextField(blank=True)
     location = models.CharField(max_length=100, default='Africa')  # Tie to cultural focus
     wallet_address = models.CharField(max_length=42, blank=True)  # For blockchain payouts (e.g., ETH/Solana)
+    is_onboarded = models.BooleanField(default=False)  # ✅ NEW
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

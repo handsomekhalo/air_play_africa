@@ -10,5 +10,8 @@ urlpatterns = [
     # path('register_api/', views.register_api, name='register_api'),
     # path('login_api/', views.login_api, name="login_api"),
     path('upload_track/', views.upload_track, name="upload_track"),
+    path('my_tracks/', views.my_tracks, name="my_tracks"),
+    path('proxy_get_play_token/<int:track_id>/', views.proxy_get_play_token, 
+         name="proxy_get_play_token"),
 
 ]

@@ -97,7 +97,9 @@ class ArtistCreateSerializer(serializers.ModelSerializer):
         last_name = validated_data.pop('last_name')
         email = validated_data.pop('email')
         password = validated_data.pop('password')
-        artist_type = UserType.objects.get(name='Artist')
+        # artist_type = UserType.objects.get(name='Artist')
+        artist_type = UserType.objects.get(name__iexact='artist')
+
 
         user = User.objects.create_user(
             email=email,

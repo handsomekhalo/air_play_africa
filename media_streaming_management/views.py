@@ -99,3 +99,127 @@ def upload_track(request):
             "status": "error",
             "message": f"Server error: {str(e)}"
         }, status=500)
+
+
+
+@csrf_exempt
+def my_tracks(request):
+    """
+    Proxy view to fetch authenticated artist's tracks.
+    Forwards request to DRF my_tracks_api.
+    """
+
+    print("🎵 my_tracks proxy called")
+
+    if request.method != "GET":
+        return JsonResponse({
+            "status": "error",
+            "message": "Method not allowed"
+        }, status=405)
+
+    try:
+        # 1. Extract token
+        auth_header = request.headers.get("Authorization", "")
+        token = None
+
+        if auth_header.startswith("Token "):
+            token = auth_header.split("Token ")[-1]
+        elif auth_header.startswith("Bearer "):
+            token = auth_header.split("Bearer ")[-1]
+
+        if not token:
+            return JsonResponse({
+                "status": "error",
+                "message": "Authorization token is required."
+            }, status=401)
+
+        # 2. Prepare headers
+        headers = {
+            "Authorization": f"Token {token}"
+        }
+
+        # 3. Build API URL
+        url_path = reverse_lazy("my_tracks_api")
+        api_url = f"{host_url(request)}{url_path}"
+
+        # 4. Forward request
+        response = requests.get(
+            api_url,
+            headers=headers,
+            timeout=30
+        )
+
+        # 5. Handle API errors
+        if response.status_code != 200:
+            return JsonResponse({
+                "status": "error",
+                "message": f"API returned {response.status_code}",
+                "details": response.text
+            }, status=response.status_code)
+
+        # 6. Success
+        return JsonResponse(
+            response.json(),
+            status=response.status_code,
+            safe=False
+        )
+
+    except requests.exceptions.RequestException as e:
+        print("❌ Request Exception:", str(e))
+        return JsonResponse({
+            "status": "error",
+            "message": f"Request failed: {str(e)}"
+        }, status=500)
+
+    except Exception as e:
+        print("❌ General Exception:", str(e))
+        return JsonResponse({
+            "status": "error",
+            "message": f"Server error: {str(e)}"
+        }, status=500)
+
+
+@csrf_exempt
+def proxy_get_play_token(request, track_id):
+    if request.method != "GET":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    try:
+        # 1. Extract token
+        auth_header = request.headers.get("Authorization", "")
+        token = None
+
+        if auth_header.startswith("Token "):
+            token = auth_header.split("Token ")[-1]
+        elif auth_header.startswith("Bearer "):
+            token = auth_header.split("Bearer ")[-1]
+
+        if not token:
+            return JsonResponse({"error": "Auth token required"}, status=401)
+
+        # 2. Forward to DRF
+        headers = {
+            "Authorization": f"Token {token}"
+        }
+
+        api_url = (
+            f"{host_url(request)}"
+            f"{reverse_lazy('get_play_token_api', args=[track_id])}"
+        )
+
+        response = requests.get(api_url, headers=headers, timeout=15)
+
+        if response.status_code != 200:
+            return JsonResponse({
+                "error": "API error",
+                "details": response.text
+            }, status=response.status_code)
+
+        return JsonResponse(response.json(), safe=False)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+
+

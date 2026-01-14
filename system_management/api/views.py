@@ -462,3 +462,24 @@ def update_admin_profile_api(request):
             'errors': error_details
         }, status=status.HTTP_400_BAD_REQUEST)
 
+
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def artist_onboarding_api(request):
+    """
+    Completes artist profile after first login
+    """
+    profile = request.user.profile
+
+    profile.bio = request.data.get("bio")
+    profile.location = request.data.get("location")
+    profile.wallet_address = request.data.get("wallet_address")
+    profile.is_onboarded = True
+    profile.save()
+
+    return Response({
+        "status": "success",
+        "message": "Artist profile completed"
+    }, status=200)

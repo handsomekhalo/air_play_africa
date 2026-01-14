@@ -2,6 +2,7 @@
 import json
 
 from django.db import IntegrityError
+from django.shortcuts import get_object_or_404, redirect
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -32,7 +33,16 @@ from media_streaming_management.api.serialziers import AdminCreateSerializer, Ar
 from media_streaming_management.models import Artist, BlockchainLog, Stream, Track
 from web3 import Web3  # For blockchain placeholder
 import os
-
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from django.core import signing
+from django.utils.timezone import now
+from datetime import timedelta
+from django.core import signing
+from django.http import StreamingHttpResponse, HttpResponseForbidden
+import time
+import requests
 
 # Blockchain setup (placeholder - load from env in production)
 WEB3_PROVIDER = os.getenv('WEB3_PROVIDER', 'https://mainnet.infura.io/v3/YOUR_INFURA_KEY')  # Replace with your key
@@ -230,7 +240,7 @@ def retrieve_all_tracks_api(request):
 def my_tracks_api(request):
     artist = request.user.artist
     queryset = Track.objects.filter(artist=artist).order_by('-upload_date')
-
+    
     serializer = GetAllArtistTrackListSerializer(queryset, many=True, context={'request': request})
     return Response({
         'status': 'success',
@@ -285,21 +295,171 @@ def record_stream_api(request):
         'status': 'error',
         'errors': serializer.errors
     }, status=status.HTTP_400_BAD_REQUEST)
-# @api_view(['POST'])
-# @permission_classes([AllowAny])  # Fans can stream anonymously, but track for anti-fraud
-# def record_stream_api(request):
-#     """Record a stream (with anti-fraud check)."""
-#     serializer = StreamSerializer(data=request.data)
-#     if serializer.is_valid():
-#         stream = serializer.save(ip_address=request.META.get('REMOTE_ADDR'))
-#         # Update merit score (simple calc)
-#         track = stream.track
-#         avg_time = track.streams.aggregate(Avg('listen_time'))['listen_time__avg'] or 0
-#         unique_listeners = track.streams.aggregate(Count('session_id', distinct=True))['session_id__count']
-#         track.merit_score = (unique_listeners * avg_time) + track.tips.count()
-#         track.save()
-#         return Response(serializer.data, status=status.HTTP_201_CREATED)
-#     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def proxy_play_track_api(request, track_id):
+    try:
+        track = Track.objects.get(id=track_id)
+    except Track.DoesNotExist:
+        return Response({"error": "Not found"}, status=404)
+
+    # 🔐 Ownership check happens HERE
+    if track.artist != request.user.artist:
+        return Response({"error": "Unauthorized"}, status=403)
+
+    if not track.stream_url:
+        return Response({"error": "Audio unavailable"}, status=400)
+
+    return redirect(track.stream_url)
+
+
+
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_play_token_api(request, track_id):
+    artist = request.user.artist
+    track = get_object_or_404(Track, id=track_id)
+
+    if track.artist != artist:
+        return Response({"error": "Unauthorized"}, status=403)
+
+    payload = {
+        "track_id": track.id,
+        "exp": (now() + timedelta(seconds=30)).timestamp()
+    }
+
+    token = signing.dumps(payload)
+
+    return Response({
+        "status": "success",
+        # "play_url": f"/media_streaming_management_api/play/{token}/"
+        "play_url":f"/media_streaming_management_api/play_with_token_api/{token}/"
+
+    })
+
+
+
+# @api_view(["GET"])
+# @permission_classes([AllowAny])
+# def play_with_token_api(request, token):
+#     try:
+#         data = signing.loads(token, max_age=30)
+
+#         if time.time() > data["exp"]:
+#             return HttpResponseForbidden("Token expired")
+
+#         track = get_object_or_404(Track, id=data["track_id"])
+
+#         if not track.stream_url:
+#             return HttpResponseForbidden("No stream")
+
+#         r = requests.get(track.stream_url, stream=True)
+
+#         response = StreamingHttpResponse(
+#             r.iter_content(chunk_size=8192),
+#             content_type="audio/mpeg"
+#         )
+#         response["Accept-Ranges"] = "bytes"
+#         return response
+
+#     except signing.BadSignature:
+#         return HttpResponseForbidden("Invalid token")
+
+# def play_with_token_api(request, token):
+#     try:
+#         data = signing.loads(token, max_age=30)
+
+#         if time.time() > data["exp"]:
+#             return HttpResponseForbidden("Token expired")
+
+#         track = get_object_or_404(Track, id=data["track_id"])
+
+#         if not track.stream_url:
+#             return HttpResponseForbidden("No stream")
+
+#         # ✅ Forward Range header from browser
+#         headers = {}
+#         if "HTTP_RANGE" in request.META:
+#             headers["Range"] = request.META["HTTP_RANGE"]
+
+#         r = requests.get(
+#             track.stream_url,
+#             headers=headers,
+#             stream=True,
+#         )
+
+#         response = StreamingHttpResponse(
+#             r.iter_content(chunk_size=8192),
+#             status=r.status_code,
+#             content_type=r.headers.get("Content-Type", "audio/mpeg"),
+#         )
+
+#         # ✅ CRITICAL headers
+#         response["Accept-Ranges"] = "bytes"
+#         if "Content-Range" in r.headers:
+#             response["Content-Range"] = r.headers["Content-Range"]
+#         if "Content-Length" in r.headers:
+#             response["Content-Length"] = r.headers["Content-Length"]
+
+#         return response
+
+#     except signing.BadSignature:
+#         return HttpResponseForbidden("Invalid token")
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def play_with_token_api(request, token):
+    try:
+        print('inside Api')
+        data = signing.loads(token, max_age=30)
+
+        print('signed in', data)
+        if time.time() > data["exp"]:
+            return HttpResponseForbidden("Token expired")
+
+        track = get_object_or_404(Track, id=data["track_id"])
+        print('track', track)
+
+        if not track.stream_url:
+            print('not track')
+            return HttpResponseForbidden("No stream")
+
+        headers = {}
+        if "HTTP_RANGE" in request.META:
+            print('header range inside')
+            headers["Range"] = request.META["HTTP_RANGE"]
+
+        r = requests.get(
+            track.stream_url,
+            headers=headers,
+            stream=True,
+        )
+
+        print('rrrrrrrrrrrrrr', r)
+
+        response = StreamingHttpResponse(
+            r.iter_content(chunk_size=8192),
+            status=r.status_code,
+            content_type=r.headers.get("Content-Type", "audio/mpeg"),
+        )
+
+        response["Accept-Ranges"] = "bytes"
+
+        if "Content-Range" in r.headers:
+            response["Content-Range"] = r.headers["Content-Range"]
+        if "Content-Length" in r.headers:
+            response["Content-Length"] = r.headers["Content-Length"]
+
+        return response
+
+    except signing.BadSignature:
+        return HttpResponseForbidden("Invalid token")
+
 
 
 
@@ -375,3 +535,6 @@ def discover_tracks(request):
     """Merit-based discovery (top by score)."""
     tracks = Track.objects.order_by('-merit_score')[:10]
     return Response(TrackSerializer(tracks, many=True).data)
+
+
+

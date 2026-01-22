@@ -13,6 +13,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from system_management.models import UserType
 from django.contrib.auth.password_validation import validate_password
+from django.db import transaction
 
 
 class SendEmailSerializer(BaseFormSerializer):
@@ -81,25 +82,51 @@ class ArtistSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+
+
 class ArtistCreateSerializer(serializers.ModelSerializer):
-    """Serializer to create Artist along with User"""
+    """Create Artist together with User"""
+
     first_name = serializers.CharField(write_only=True)
     last_name = serializers.CharField(write_only=True)
     email = serializers.EmailField(write_only=True)
     password = serializers.CharField(write_only=True, min_length=6)
 
+    # Optional onboarding fields
+    bio = serializers.CharField(required=False, allow_blank=True)
+    location = serializers.CharField(required=False, allow_blank=True)
+    wallet_address = serializers.CharField(required=False, allow_blank=True)
+
     class Meta:
         model = Artist
-        fields = ['first_name', 'last_name', 'email', 'password', 'bio', 'location', 'wallet_address']
+        fields = [
+            'first_name',
+            'last_name',
+            'email',
+            'password',
+            'bio',
+            'location',
+            'wallet_address',
+        ]
 
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Email already registered.")
+        return value
+
+    @transaction.atomic
     def create(self, validated_data):
         first_name = validated_data.pop('first_name')
         last_name = validated_data.pop('last_name')
         email = validated_data.pop('email')
         password = validated_data.pop('password')
-        # artist_type = UserType.objects.get(name='Artist')
-        artist_type = UserType.objects.get(name__iexact='artist')
 
+        # Extract optional fields with defaults
+        bio = validated_data.get('bio', '')
+        location = validated_data.get('location', '')
+        wallet_address = validated_data.get('wallet_address', '')
+
+        artist_type = UserType.objects.get(name__iexact='artist')
 
         user = User.objects.create_user(
             email=email,
@@ -109,8 +136,97 @@ class ArtistCreateSerializer(serializers.ModelSerializer):
             user_type=artist_type,
             is_active=True
         )
-        artist = Artist.objects.create(user=user, **validated_data)
+
+        artist = Artist.objects.create(
+            user=user,
+            bio=bio,
+            location=location,
+            wallet_address=wallet_address,
+            is_onboarded=False,  # ✅ critical for onboarding flow
+        )
+
         return artist
+
+# class ArtistCreateSerializer(serializers.ModelSerializer):
+#     """Create Artist together with User"""
+
+#     first_name = serializers.CharField(write_only=True)
+#     last_name = serializers.CharField(write_only=True)
+#     email = serializers.EmailField(write_only=True)
+#     password = serializers.CharField(write_only=True, min_length=6)
+
+#     class Meta:
+#         model = Artist
+#         fields = [
+#             'first_name',
+#             'last_name',
+#             'email',
+#             'password',
+#             # 'bio',
+#             # 'location',
+#             # 'wallet_address',
+#         ]
+
+#     def validate_email(self, value):
+#         if User.objects.filter(email=value).exists():
+#             raise serializers.ValidationError("Email already registered.")
+#         return value
+
+#     @transaction.atomic
+#     def create(self, validated_data):
+#         first_name = validated_data.pop('first_name')
+#         last_name = validated_data.pop('last_name')
+#         email = validated_data.pop('email')
+#         password = validated_data.pop('password')
+
+#         artist_type = UserType.objects.get(name__iexact='artist')
+
+#         user = User.objects.create_user(
+#             email=email,
+#             password=password,
+#             first_name=first_name,
+#             last_name=last_name,
+#             user_type=artist_type,
+#             is_active=True
+#         )
+
+#         artist = Artist.objects.create(
+#             user=user,
+#             is_onboarded=False,  # ✅ CRITICAL
+#             **validated_data
+#         )
+
+#         return artist
+# class ArtistCreateSerializer(serializers.ModelSerializer):
+#     """Serializer to create Artist along with User"""
+#     first_name = serializers.CharField(write_only=True)
+#     last_name = serializers.CharField(write_only=True)
+#     email = serializers.EmailField(write_only=True)
+#     password = serializers.CharField(write_only=True, min_length=6)
+
+#     class Meta:
+#         model = Artist
+#         fields = ['first_name', 'last_name', 'email', 'password', 'bio', 'location', 'wallet_address']
+
+#     def create(self, validated_data):
+#         first_name = validated_data.pop('first_name')
+#         last_name = validated_data.pop('last_name')
+#         email = validated_data.pop('email')
+#         password = validated_data.pop('password')
+#         # artist_type = UserType.objects.get(name='Artist')
+#         artist_type = UserType.objects.get(name__iexact='artist')
+
+
+#         user = User.objects.create_user(
+#             email=email,
+#             password=password,
+#             first_name=first_name,
+#             last_name=last_name,
+#             user_type=artist_type,
+#             is_active=True
+#         )
+#         artist = Artist.objects.create(user=user, **validated_data)
+#         return artist
 
 class GetArtistProfileSerializer(serializers.ModelSerializer):
     """Serializer for Artist profile with nested user"""
@@ -345,3 +461,17 @@ class ListArtistSerializer(serializers.ModelSerializer):
         model = Artist
         fields = '__all__'
 
+
+class ArtistOnboardingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Artist
+        fields = [
+            'bio',
+            'location',
+            'wallet_address',
+        ]
+
+    def validate_wallet_address(self, value):
+        if value and len(value) < 10:
+            raise serializers.ValidationError("Invalid wallet address.")
+        return value

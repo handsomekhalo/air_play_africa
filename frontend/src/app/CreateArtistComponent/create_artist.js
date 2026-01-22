@@ -2,8 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { registerArtist } from './artist';
+import backendApi from '../../utils/backendApi';
+import LoginPage from '../Login_Component/login';
 
+export const registerArtist = async (data) => {
+  const response = await backendApi.post("/system_management/register_artist/", data);
+  return response.data;
+};
 
 export default function ArtistRegister() {
   const router = useRouter();
@@ -13,9 +18,6 @@ export default function ArtistRegister() {
     last_name: '',
     email: '',
     password: '',
-    // bio: '',
-    // location: '',
-    // wallet_address: '',
   });
 
   const [loading, setLoading] = useState(false);
@@ -35,20 +37,24 @@ export default function ArtistRegister() {
     setError(null);
 
     try {
-      await registerArtist(form);
-      setSuccess(true);
+      const data = await registerArtist(form);
 
-      // Clear password from memory
-      setForm((prev) => ({ ...prev, password: '' }));
+      if (data.status === 'success') {
+        setSuccess(true);
+        setForm((prev) => ({ ...prev, password: '' })); // clear password
 
-      setTimeout(() => {
-        router.push('/login');
-      }, 1500);
+        setTimeout(() => {
+          // router.push('/login'); 
+          // redirect to login page
+          router.push('/login');
+
+        }, 1500);
+      } else {
+        setError(data.message || 'Artist registration failed.');
+      }
     } catch (err) {
       setError(
-        err?.response?.data?.detail ||
-        err?.response?.data?.message ||
-        'Artist registration failed. Please try again.'
+        err?.response?.data?.message || 'Artist registration failed. Please try again.'
       );
     } finally {
       setLoading(false);
@@ -75,14 +81,18 @@ export default function ArtistRegister() {
           name="first_name"
           placeholder="First name"
           required
+          value={form.first_name}
           onChange={handleChange}
+          className="w-full border rounded p-2"
         />
 
         <input
           name="last_name"
           placeholder="Last name"
           required
+          value={form.last_name}
           onChange={handleChange}
+          className="w-full border rounded p-2"
         />
 
         <input
@@ -90,34 +100,20 @@ export default function ArtistRegister() {
           type="email"
           placeholder="Email"
           required
+          value={form.email}
           onChange={handleChange}
+          className="w-full border rounded p-2"
         />
 
-        {/* <input
+        <input
           name="password"
           type="password"
           placeholder="Password"
           required
+          value={form.password}
           onChange={handleChange}
+          className="w-full border rounded p-2"
         />
-
-        <textarea
-          name="bio"
-          placeholder="Bio"
-          onChange={handleChange}
-        />
-
-        <input
-          name="location"
-          placeholder="Location"
-          onChange={handleChange}
-        /> */}
-
-        {/* <input
-          name="wallet_address"
-          placeholder="Wallet address"
-          onChange={handleChange}
-        /> */}
 
         <button
           type="submit"
@@ -130,3 +126,147 @@ export default function ArtistRegister() {
     </div>
   );
 }
+
+
+
+// 'use client';
+
+// import { useState } from 'react';
+// import { useRouter } from 'next/navigation';
+// import { registerArtist } from './artist';
+
+
+// export default function ArtistRegister() {
+//   const router = useRouter();
+
+//   const [form, setForm] = useState({
+//     first_name: '',
+//     last_name: '',
+//     email: '',
+//     password: '',
+//     // bio: '',
+//     // location: '',
+//     // wallet_address: '',
+//   });
+
+//   const [loading, setLoading] = useState(false);
+//   const [error, setError] = useState(null);
+//   const [success, setSuccess] = useState(false);
+
+//   const handleChange = (e) => {
+//     setForm({
+//       ...form,
+//       [e.target.name]: e.target.value,
+//     });
+//   };
+
+//   const handleSubmit = async (e) => {
+//     e.preventDefault();
+//     setLoading(true);
+//     setError(null);
+
+//     try {
+//       await registerArtist(form);
+//       setSuccess(true);
+
+//       // Clear password from memory
+//       setForm((prev) => ({ ...prev, password: '' }));
+
+//       setTimeout(() => {
+//         router.push('/login');
+
+//       }, 1500);
+//     } catch (err) {
+//       setError(
+//         err?.response?.data?.detail ||
+//         err?.response?.data?.message ||
+//         'Artist registration failed. Please try again.'
+//       );
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   return (
+//     <div className="max-w-md mx-auto p-6">
+//       <h1 className="text-2xl font-bold mb-4">Create Artist Account</h1>
+
+//       {success && (
+//         <p className="text-green-600 mb-4">
+//           Account created successfully. Redirecting to login...
+//         </p>
+//       )}
+
+//       {error && <p className="text-red-600 mb-4">{error}</p>}
+
+//       <form onSubmit={handleSubmit} className="space-y-4">
+//         {/* Honeypot (bot protection) */}
+//         <input type="text" name="company" className="hidden" tabIndex="-1" />
+
+//         <input
+//           name="first_name"
+//           placeholder="First name"
+//           required
+//           onChange={handleChange}
+//         />
+
+//         <input
+//           name="last_name"
+//           placeholder="Last name"
+//           required
+//           onChange={handleChange}
+//         />
+
+//         <input
+//           name="email"
+//           type="email"
+//           placeholder="Email"
+//           required
+//           onChange={handleChange}
+//         />
+
+//         <input
+//           name="password"
+//           type="password"
+//           placeholder="Password"
+//           required
+//           onChange={handleChange}
+//         />
+
+//         {/* <input
+//           name="password"
+//           type="password"
+//           placeholder="Password"
+//           required
+//           onChange={handleChange}
+//         />
+
+//         <textarea
+//           name="bio"
+//           placeholder="Bio"
+//           onChange={handleChange}
+//         />
+
+//         <input
+//           name="location"
+//           placeholder="Location"
+//           onChange={handleChange}
+//         /> */}
+
+//         {/* <input
+//           name="wallet_address"
+//           placeholder="Wallet address"
+//           onChange={handleChange}
+//         /> */}
+
+//         <button
+//           type="submit"
+//           disabled={loading || success}
+//           className="bg-black text-white px-4 py-2 rounded w-full"
+//         >
+//           {loading ? 'Creating...' : 'Create Account'}
+//         </button>
+//       </form>
+//     </div>
+//   );
+// }

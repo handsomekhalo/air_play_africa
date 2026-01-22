@@ -19,7 +19,9 @@ urlpatterns = [
     # path('update_artist_profile_api/', views.update_artist_profile_api, name="update_artist_profile_api"),
     path('update_profile_api/', views.update_profile_api, name="update_profile_api"),
     path('update_admin_profile_api/', views.update_admin_profile_api, name="update_admin_profile_api"),
-
+    # path('artist_onboarding_api/', views.artist_onboarding_api, name="artist_onboarding_api"),
+    path('artist_onboarding_step_1_api/', views.artist_onboarding_step_1_api, name="artist_onboarding_step_1_api"),
+    path('artist_onboarding_step_2_api/', views.artist_onboarding_step_2_api, name="artist_onboarding_step_2_api"),
     # path('get_users_api/', views.get_users_api, name="get_users_api"),
     # path('get_user_types_api/', views.get_user_types_api, name="get_user_types_api"),
     # path('update_user_api/', views.update_user_api, name="update_user_api"),

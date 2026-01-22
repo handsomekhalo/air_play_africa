@@ -10,6 +10,7 @@ class Artist(models.Model):
     location = models.CharField(max_length=100, default='Africa')  # Tie to cultural focus
     wallet_address = models.CharField(max_length=42, blank=True)  # For blockchain payouts (e.g., ETH/Solana)
     is_onboarded = models.BooleanField(default=False)  # ✅ NEW
+    onboarding_step = models.PositiveSmallIntegerField(default=1)
 
     created_at = models.DateTimeField(auto_now_add=True)
 

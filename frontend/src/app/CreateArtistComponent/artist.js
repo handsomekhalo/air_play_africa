@@ -3,13 +3,32 @@
 
 
 // import api from './axios'; // your existing axios instance
+import backendApi from "@/utils/backendApi";
 
-export const getMyArtistProfile = async () => {
-  const res = await api.get(
-    '/media_streaming_management/artist_profile/me/'
+export const getArtistProfile = async () => {
+  const res = await backendApi.get(
+    '/system_management/get_artist_profile/',
+    { withCredentials: true }
   );
   return res.data;
 };
+
+export const updateMyArtistProfile = async (payload, csrfToken) => {
+  const res = await backendApi.patch(
+    '/system_management/update_profile/',
+    payload,
+    {
+      headers: {
+        'X-CSRFToken': csrfToken,
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true,
+    }
+  );
+  return res.data;
+};
+
+
 
 export const createArtistProfile = async (payload) => {
   const res = await api.post(

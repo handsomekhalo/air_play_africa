@@ -382,3 +382,168 @@ def artist_onboarding_step_2(request):
             "status": "error",
             "message": f"Server error: {str(e)}"
         }, status=500)
+
+
+
+@csrf_exempt
+def get_artist_profile(request):
+    """
+    Proxy view to fetch logged-in artist profile
+    """
+
+    print("🟢 Get Artist Profile Proxy called")
+
+    if request.method != "GET":
+        return JsonResponse({
+            "status": "error",
+            "message": "Method not allowed"
+        }, status=405)
+
+    try:
+        # 1️⃣ Extract token
+        auth_header = request.headers.get("Authorization", "")
+        token = None
+
+        if auth_header.startswith("Token "):
+            token = auth_header.split("Token ")[-1]
+        elif auth_header.startswith("Bearer "):
+            token = auth_header.split("Bearer ")[-1]
+
+        if not token:
+            return JsonResponse({
+                "status": "error",
+                "message": "Authorization token is required."
+            }, status=401)
+
+        # 2️⃣ Prepare headers
+        headers = {
+            "Authorization": f"Token {token}",
+            "Content-Type": "application/json"
+        }
+
+        # 3️⃣ Build API URL
+        url_path = reverse_lazy("get_artist_profile_api")
+        api_url = f"{host_url(request)}{url_path}"
+
+        print("API URL:", api_url)
+
+        # 4️⃣ Forward request
+        response = requests.get(
+            api_url,
+            headers=headers,
+            timeout=30
+        )
+
+        print("API Response Status:", response.status_code)
+
+        # 5️⃣ Handle API errors
+        if response.status_code != 200:
+            return JsonResponse({
+                "status": "error",
+                "message": "API error",
+                "details": response.text
+            }, status=response.status_code)
+
+        # 6️⃣ Success
+        print("API Response Data:", response.json())
+        return JsonResponse(response.json(), status=response.status_code)
+
+    except requests.exceptions.RequestException as e:
+        print("❌ Request Exception:", str(e))
+        return JsonResponse({
+            "status": "error",
+            "message": f"Request failed: {str(e)}"
+        }, status=500)
+
+    except Exception as e:
+        print("❌ General Exception:", str(e))
+        return JsonResponse({
+            "status": "error",
+            "message": f"Server error: {str(e)}"
+        }, status=500)
+
+
+
+@csrf_exempt
+def update_profile(request):
+    """
+    Proxy view for updating logged-in user profile (Artist / Listener)
+    """
+
+    print("🟢 Update Profile Proxy called")
+
+    if request.method not in ["PUT", "PATCH"]:
+        return JsonResponse({
+            "status": "error",
+            "message": "Method not allowed"
+        }, status=405)
+
+    try:
+        # 1️⃣ Extract token
+        auth_header = request.headers.get("Authorization", "")
+        token = None
+
+        if auth_header.startswith("Token "):
+            token = auth_header.split("Token ")[-1]
+        elif auth_header.startswith("Bearer "):
+            token = auth_header.split("Bearer ")[-1]
+
+        if not token:
+            return JsonResponse({
+                "status": "error",
+                "message": "Authorization token is required."
+            }, status=401)
+
+        # 2️⃣ Parse body
+        body = json.loads(request.body or "{}")
+
+        # 3️⃣ Prepare headers
+        headers = {
+            "Authorization": f"Token {token}",
+            "Content-Type": "application/json"
+        }
+
+        print("Headers:", headers)
+        print("Body:", body)
+
+        # 4️⃣ Build API URL
+        url_path = reverse_lazy("update_profile_api")
+        api_url = f"{host_url(request)}{url_path}"
+
+        print("API URL:", api_url)
+
+        # 5️⃣ Forward request
+        response = requests.request(
+            method=request.method,   # 👈 preserves PUT vs PATCH
+            url=api_url,
+            headers=headers,
+            json=body,
+            timeout=30
+        )
+
+        print("API Response Status:", response.status_code)
+
+        # 6️⃣ Handle API errors
+        if response.status_code not in [200, 201]:
+            return JsonResponse({
+                "status": "error",
+                "message": "API error",
+                "details": response.text
+            }, status=response.status_code)
+
+        # 7️⃣ Success
+        return JsonResponse(response.json(), status=response.status_code)
+
+    except requests.exceptions.RequestException as e:
+        print("❌ Request Exception:", str(e))
+        return JsonResponse({
+            "status": "error",
+            "message": f"Request failed: {str(e)}"
+        }, status=500)
+
+    except Exception as e:
+        print("❌ General Exception:", str(e))
+        return JsonResponse({
+            "status": "error",
+            "message": f"Server error: {str(e)}"
+        }, status=500)

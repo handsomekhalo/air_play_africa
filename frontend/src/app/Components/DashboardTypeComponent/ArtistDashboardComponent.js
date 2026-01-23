@@ -8,7 +8,7 @@ import { TrackAnalytics } from "../DashboardUIComponents/TrackAnalytics";
 import { Button } from "../DashboardUIComponents/UI/Button";
 import UploadFileComponent from "../DashboardComponents/UploadFileComponent";
 import UploadPage from "../DashboardComponents/uploadFile";
-
+import ProfileModal from "../../Profile/profile_modall";
 import {
   DollarSign,
   TrendingUp,
@@ -21,6 +21,8 @@ import {
 
 export default function ArtistDashboardPage() {
   const [showUpload, setShowUpload] = useState(false);
+    const [showProfile, setShowProfile] = useState(false);
+
 
   // Mock data (replace later with API calls)
   const revenueData = [
@@ -92,6 +94,19 @@ export default function ArtistDashboardPage() {
                 <Wallet className="h-4 w-4 mr-2" />
                 Withdraw Funds
               </Button>
+
+               <button
+          onClick={() => setShowProfile(true)}
+          className="px-4 py-2 rounded bg-black text-white"
+        >
+          Profile
+        </button>
+
+
+        {showProfile && (
+        <ProfileModal onClose={() => setShowProfile(false)} />
+      )}
+
             </div>
           </div>
         </div>

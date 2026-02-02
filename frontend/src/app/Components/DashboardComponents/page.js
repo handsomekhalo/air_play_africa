@@ -1,7 +1,9 @@
 "use client"
 
 import ArtistDashboardPage from "../DashboardTypeComponent/ArtistDashboardComponent";
-import AdminDashboard from "../DashboardTypeComponent/AdminDashboardComponent";
+// import AdminDashboard from "../DashboardTypeComponent/AdminDashboardComponent";
+import Admin_Dashboard from "../../admin/dashboard/page";
+
 
 export default function DashboardPage() {
   
@@ -18,8 +20,9 @@ export default function DashboardPage() {
       {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"> */}
       <div className="">
 
-        <ArtistDashboardPage/>
+        {/* <ArtistDashboardPage/> */}
         {/* <AdminDashboard/> */}
+        <Admin_Dashboard/>
 
 
         {/* <StatCard

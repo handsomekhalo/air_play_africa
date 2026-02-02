@@ -10,6 +10,8 @@ import { getArtistProfile, updateMyArtistProfile } from '@/app/CreateArtistCompo
 // import updateMyArtistProfile from '@/app/CreateArtistComponent/artist.js';
 import backendApi from '@/utils/backendApi';
 
+
+
 export default function ProfileForm() {
   const [form, setForm] = useState({
     first_name: '',
@@ -20,15 +22,13 @@ export default function ProfileForm() {
   });
 
   const [initialForm, setInitialForm] = useState(null);
-  // const [loading, setLoading] = useState(true);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   // 🔹 Fetch profile on open
-
-  useEffect(() => {
+useEffect(() => {
   const fetchProfile = async () => {
     try {
       const res = await backendApi.get(
@@ -49,6 +49,8 @@ export default function ProfileForm() {
       }
     } catch (err) {
       console.error('Failed to fetch profile:', err);
+    } finally {
+      setLoading(false); // 🔥 THIS IS THE KEY LINE
     }
   };
 
@@ -101,8 +103,17 @@ export default function ProfileForm() {
   };
 
   if (loading) {
-    return <p className="text-sm text-gray-500">Loading profile...</p>;
-  }
+  return (
+    <div className="py-8 text-center text-gray-500">
+      Loading profile…
+    </div>
+  );
+}
+
+
+  // if (loading) {
+  //   return <p className="text-sm text-gray-500">Loading profile...</p>;
+  // }
 
   return (
     <div className="space-y-4">
@@ -134,9 +145,13 @@ export default function ProfileForm() {
       >
         {saving ? 'Saving...' : 'Update Profile'}
       </button>
+      
     </div>
+    
   );
+  
 }
+
 
 /* 🔹 Small reusable inputs */
 const Input = ({ label, ...props }) => (

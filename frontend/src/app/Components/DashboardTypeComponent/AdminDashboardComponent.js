@@ -1,8 +1,8 @@
 "use client";
 
 import { MetricCard } from "../DashboardUIComponents/Metrics";
-import { RevenueChart } from "../DashboardUIComponents/ReveneueChart";
-import { TrackAnalytics } from "../DashboardUIComponents/TrackAnalytics";
+// import { RevenueChart } from "../DashboardUIComponents/ReveneueChart";
+// import { TrackAnalytics } from "../DashboardUIComponents/TrackAnalytics";
 
 import { Button } from "../DashboardUIComponents/UI/Button";
 
@@ -17,7 +17,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-const AdminDashboard = () => {
+const AdminDashboardUI= () => {
   // Mock platform-wide revenue data
   const revenueData = [
     { date: "Mon", streams: 1200, tips: 320, downloads: 210 },
@@ -76,7 +76,7 @@ const AdminDashboard = () => {
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            {/* <div className="flex items-center gap-3">
               <Button variant="outline">
                 <ShieldCheck className="h-4 w-4 mr-2" />
                 Verify Content
@@ -85,7 +85,7 @@ const AdminDashboard = () => {
                 <Download className="h-4 w-4 mr-2" />
                 Export Reports
               </Button>
-            </div>
+            </div> */}
           </div>
         </div>
       </header>
@@ -146,15 +146,15 @@ const AdminDashboard = () => {
         </div>
 
         {/* Revenue Chart */}
-        <div className="mb-8">
+        {/* <div className="mb-8">
           <RevenueChart data={revenueData} />
-        </div>
+        </div> */}
 
         {/* Platform Track Analytics */}
-        <TrackAnalytics tracks={tracks} />
+        {/* <TrackAnalytics tracks={tracks} /> */}
 
         {/* Payout Oversight */}
-        <div className="mt-8 bg-card border border-border rounded-xl p-6">
+        {/* <div className="mt-8 bg-card border border-border rounded-xl p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-semibold flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-gold" />
@@ -195,7 +195,7 @@ const AdminDashboard = () => {
               </div>
             ))}
           </div>
-        </div>
+        </div> */}
       </main>
     </div>
   );

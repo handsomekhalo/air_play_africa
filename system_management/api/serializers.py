@@ -323,6 +323,37 @@ class UserTypeModelSerializer(serializers.ModelSerializer):
         )
 
 
+class AdminUserListSerializer(serializers.ModelSerializer):
+    user_type__name = serializers.SerializerMethodField()
+    last_login = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S")
+    date_joined = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S")
+    profile = serializers.SerializerMethodField()
+
+    def get_user_type__name(self, obj):
+        return obj.user_type.name
+
+    def get_profile(self, obj):
+        try:
+            profile = Profile.objects.get(user_id=obj.id)
+            return ProfileModelSerializer(profile).data
+        except Profile.DoesNotExist:
+            return None
+
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "first_name",
+            "last_name",
+            "email",
+            "is_active",
+            "last_login",
+            "date_joined",
+            "user_type_id",
+            "user_type__name",
+            "profile",
+        )
+
 class GetAlltUserModelSerializer(serializers.ModelSerializer):
     """User model serializer for cleaning user values"""
     user_type__name = serializers.SerializerMethodField()

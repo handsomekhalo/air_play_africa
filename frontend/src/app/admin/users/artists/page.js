@@ -1,17 +1,17 @@
-"use client";
+  'use client';
 
-import { useEffect, useState } from "react";
-import { getAdminArtists } from "../../../utils/admin_artists";
+  import { useEffect, useState } from "react";
+  import { getAllArtists } from "../../../../utils/admin_artists";
 
-export default function AdminArtistsPage() {
+const ArtistsTable = () => {
   const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadArtists = async () => {
+    const fetchArtists = async () => {
       try {
-        const data = await getAdminArtists();
-        setArtists(data);
+        const data = await getAllArtists();
+        setArtists(data.artists || []);
       } catch (err) {
         console.error("Failed to load artists", err);
       } finally {
@@ -19,63 +19,35 @@ export default function AdminArtistsPage() {
       }
     };
 
-    loadArtists();
+    fetchArtists();
   }, []);
 
-  if (loading) {
-    return <div className="p-8">Loading artists…</div>;
-  }
+  if (loading) return <p>Loading artists…</p>;
 
   return (
-    <div className="p-8 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">Artists</h1>
-        <p className="text-sm text-muted-foreground">
-          Platform-wide artist accounts
-        </p>
-      </div>
-
-      {/* Artists Table */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/50">
-            <tr className="text-left">
-              <th className="px-4 py-3">Name</th>
-              <th className="px-4 py-3">Email</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Joined</th>
-            </tr>
-          </thead>
-          <tbody>
-            {artists.map((artist) => (
-              <tr
-                key={artist.id}
-                className="border-t border-border hover:bg-muted/30"
-              >
-                <td className="px-4 py-3 font-medium">
-                  {artist.first_name} {artist.last_name}
-                </td>
-                <td className="px-4 py-3">{artist.email}</td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      artist.status === "active"
-                        ? "bg-emerald/10 text-emerald"
-                        : "bg-coral/10 text-coral"
-                    }`}
-                  >
-                    {artist.status}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {new Date(artist.created_at).toLocaleDateString()}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <table className="min-w-full text-sm">
+      <thead>
+        <tr className="border-b">
+          <th>Name</th>
+          <th>Email</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {artists.map((artist) => (
+          <tr key={artist.id} className="border-b">
+            <td>{artist.first_name}</td>
+            <td>{artist.email}</td>
+            <td>{artist.is_active ? "Active" : "Suspended"}</td>
+            <td className="flex gap-2">
+              {/* actions go here */}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
-}
+};
+
+export default ArtistsTable;

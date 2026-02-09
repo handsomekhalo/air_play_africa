@@ -15,8 +15,8 @@ urlpatterns = [
     path('artist_onboarding_step_2/', views.artist_onboarding_step_2, name='artist_onboarding_step_2'),
     path('get_artist_profile/', views.get_artist_profile, name='get_artist_profile'),
     path('update_profile/', views.update_profile, name='update_profile'),
-
-
+    path('get_all_admins/', views.get_all_admins, name='get_all_admins'),
+    path('get_all_artists/', views.get_all_artists, name='get_all_artists'),
     # path('login/', views.login, name='login'),
     # path('get_roles/', views.get_roles, name='get_roles'),
     # path('get_all_users/', views.get_all_users, name='get_all_users'),

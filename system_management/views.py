@@ -461,7 +461,79 @@ def get_artist_profile(request):
             "status": "error",
             "message": f"Server error: {str(e)}"
         }, status=500)
+        
 
+@csrf_exempt
+def get_all_artists(request):
+    if request.method != "GET":
+        return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
+
+    try:
+        auth_header = request.headers.get("Authorization", "")
+        token = None
+
+        if auth_header.startswith("Token "):
+            token = auth_header.split("Token ")[-1]
+        elif auth_header.startswith("Bearer "):
+            token = auth_header.split("Bearer ")[-1]
+
+        if not token:
+            return JsonResponse({"status": "error", "message": "Authorization token required"}, status=401)
+
+        headers = {
+          "Authorization": f"Token {token}",
+            "Content-Type": "application/json"
+        }
+
+        url_path = reverse_lazy("get_all_artists_api")
+        api_url = f"{host_url(request)}{url_path}"
+
+        response = requests.get(api_url, headers=headers, timeout=30)
+
+        return JsonResponse(response.json(), status=response.status_code)
+
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+
+@csrf_exempt
+def get_all_admins(request):
+    if request.method != "GET":
+        return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
+
+    try:
+        auth_header = request.headers.get("Authorization", "")
+        token = None
+        print("🟢 Get All Admins Proxy called")
+
+        if auth_header.startswith("Token "):
+            token = auth_header.split("Token ")[-1]
+            print("Extracted Token:******", token)
+        elif auth_header.startswith("Bearer "):
+            token = auth_header.split("Bearer ")[-1]
+            print("Extracted Token------:", token)
+
+        if not token:
+            print("❌ No token found in Authorization header")
+            return JsonResponse({"status": "error", "message": "Authorization token required"}, status=401)
+
+        headers = {
+            # "Authorization": f"Bearer {token}",
+            "Authorization": f"Token {token}",
+
+            "Content-Type": "application/json"
+        }
+        print("Headers for API call:", headers)
+
+        url_path = reverse_lazy("get_all_admins_api")
+        api_url = f"{host_url(request)}{url_path}"
+
+        response = requests.get(api_url, headers=headers, timeout=30)
+
+        return JsonResponse(response.json(), status=response.status_code)
+
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
 
 @csrf_exempt

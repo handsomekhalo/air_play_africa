@@ -6,7 +6,7 @@ from requests import Response
 
 from media_streaming_management.models import Artist
 from system_management import constants
-from system_management.api.serializers import  AdminCreateSerializer, AdminUpdateSerializer, ArtistCreateSerializer, ArtistOnboardingSerializer, ArtistSerializer, GetAlltUserModelSerializer, GetArtistProfileSerializer, GetArtistSerializer, ListenerCreateSerializer, UpdateArtistProfileSerializer, UserModelSerializer, UserTypeModelSerializer
+from system_management.api.serializers import  AdminCreateSerializer, AdminUpdateSerializer, AdminUserListSerializer, ArtistCreateSerializer, ArtistOnboardingSerializer, ArtistSerializer, GetAlltUserModelSerializer, GetArtistProfileSerializer, GetArtistSerializer, ListenerCreateSerializer, UpdateArtistProfileSerializer, UserModelSerializer, UserTypeModelSerializer
 
 from system_management import constants
 from system_management.api.serializers import  UserModelSerializer
@@ -389,6 +389,67 @@ def get_user_types_api(request):
             'message': constants.INVALID_REQUEST_METHOD
         }
         return Response(data, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_all_artists_api(request):
+    users = User.objects.filter(user_type__name__iexact="artist")
+
+    serializer = AdminUserListSerializer(users, many=True)
+
+    return Response({
+        "status": "success",
+        "artists": serializer.data
+    }, status=status.HTTP_200_OK)
+
+
+# @api_view(["GET"])
+# @permission_classes([IsAuthenticated])
+# def get_all_artists_api(request):
+#     users = User.objects.filter(user_type__name="Artist")
+
+#     serializer = AdminUserListSerializer(users, many=True)
+
+#     return Response({
+#         "status": "success",
+#         "artists": serializer.data
+#     }, status=status.HTTP_200_OK)
+
+
+
+
+# @api_view(["GET"])
+# @permission_classes([IsAuthenticated])
+# def get_all_admins_api(request):
+#     # print("🟢 Get All Admins API called")
+
+#     # print("ALL USERS:", list(User.objects.values("id", "email", "user_type_id")))
+
+#     users = User.objects.filter(user_type__name="Admin")
+#     # users = User.objects.all()
+
+
+#     serializer = AdminUserListSerializer(users, many=True)
+
+#     return Response({
+#         "status": "success",
+#         "admins": serializer.data
+#     }, status=status.HTTP_200_OK)
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_all_admins_api(request):
+    users = User.objects.filter(user_type__name__iexact="admin")
+
+    serializer = AdminUserListSerializer(users, many=True)
+
+    return Response({
+        "status": "success",
+        "admins": serializer.data
+    }, status=status.HTTP_200_OK)
+
 
 
 @api_view(['GET'])

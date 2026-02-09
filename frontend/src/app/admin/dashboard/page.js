@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { MetricCard } from "../../Components/DashboardUIComponents/Metrics";
 import {getAdminOverview} from "../../../utils/admin_overview";
+import Sidebar from "@/app/Components/System_Management_Components/dashboard/SideBarComponent/sidebar";
 
 import {
   Users,
@@ -32,14 +33,7 @@ useEffect(() => {
 }, []);
 
   
-  // useEffect(() => {
-  //   fetch("/api/admin/overview")
-  //     .then((res) => res.json())
-  //     .then(setData)
-  //     .catch(() => setData(null))
-  //     .finally(() => setLoading(false));
-  // }, []);
-
+ 
   if (loading) {
     return <div className="p-8">Loading platform status…</div>;
   }
@@ -49,8 +43,12 @@ useEffect(() => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
+    // <div className="min-h-screen bg-background">
+    <div className="min-h-screen flex bg-background">
+      <Sidebar />
+
+        <div className="flex-1">
+           {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto px-6 py-4">
           <h1 className="text-2xl font-bold">Admin Dashboard</h1>
@@ -99,8 +97,14 @@ useEffect(() => {
             </p>
           </div>
         </div>
+        
       </main>
     </div>
+    {/* header + main content */}
+  </div>
+
+
+     
   );
 }
 

@@ -2,28 +2,50 @@
 
 
   import { useEffect, useState } from "react";
-  import { getAllAdmins } from "../../../../utils/admin_artists";
+  import { getAllAdmins , toggleUserActive } from "../../../../utils/admin_artists";
 
-const ArtistsTable = () => {
-  const [artists, setArtists] = useState([]);
+const AdminsTable = () => {
+  const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
 
+// const [admins, setAdmins] = useState([]);
+
+const handleToggleAdmin = async (adminId) => {
+  try {
+    const res = await toggleUserActive(adminId);
+
+    setAdmins(prev =>
+      prev.map(a =>
+        a.id === adminId
+          ? { ...a, is_active: res.is_active }
+          : a
+      )
+    );
+  } catch (err) {
+    console.error("Failed to toggle admin", err);
+  }
+};
+
+
+
+
+
   useEffect(() => {
-    const fetchArtists = async () => {
+    const fetchAdmins = async () => {
       try {
         const data = await getAllAdmins();
-        setArtists(data.admins || []);
+        setAdmins(data.admins || []);
       } catch (err) {
-        console.error("Failed to load artists", err);
+        console.error("Failed to load admins", err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchArtists();
+    fetchAdmins();
   }, []);
 
-  if (loading) return <p>Loading artists…</p>;
+  if (loading) return <p>Loading admins…</p>;
 
   return (
     <table className="min-w-full text-sm">
@@ -36,13 +58,32 @@ const ArtistsTable = () => {
         </tr>
       </thead>
       <tbody>
-        {artists.map((admin) => (
+        {admins.map((admin) => (
           <tr key={admin.id} className="border-b">
             <td>{admin.first_name}</td>
             <td>{admin.email}</td>
             <td>{admin.is_active ? "Active" : "Suspended"}</td>
             <td className="flex gap-2">
               {/* actions go here */}
+              <button
+  onClick={() => handleToggleAdmin(admin.id)}
+  className={`px-3 py-1 rounded text-sm ${
+    admin.is_active ? "bg-red-500 text-white" : "bg-green-500 text-white"
+  }`}
+>
+  {admin.is_active ? "Suspend" : "Activate"}
+</button>
+
+        {/* <button
+          onClick={() => toggleUserActive(admin.id)}
+          className={`px-3 py-1 rounded text-sm ${
+            admin.is_active ? "bg-red-500 text-white" : "bg-green-500 text-white"
+          }`}
+        >
+          {admin.is_active ? "Suspend" : "Activate"}
+        </button> */}
+
+              
             </td>
           </tr>
         ))}
@@ -51,4 +92,4 @@ const ArtistsTable = () => {
   );
 };
 
-export default ArtistsTable;
+export default AdminsTable;

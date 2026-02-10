@@ -1,11 +1,32 @@
   'use client';
 
   import { useEffect, useState } from "react";
-  import { getAllArtists } from "../../../../utils/admin_artists";
+  import { getAllArtists, toggleUserActive} from "../../../../utils/admin_artists";
+  
 
 const ArtistsTable = () => {
   const [artists, setArtists] = useState([]);
+  
   const [loading, setLoading] = useState(true);
+
+  // const [artists, setArtists] = useState([]);
+
+const handleToggleArtist = async (artistId) => {
+  try {
+    const res = await toggleUserActive(artistId);
+
+    setArtists(prev =>
+      prev.map(a =>
+        a.id === artistId
+          ? { ...a, is_active: res.is_active }
+          : a
+      )
+    );
+  } catch (err) {
+    console.error("Failed to toggle artist", err);
+  }
+};
+
 
   useEffect(() => {
     const fetchArtists = async () => {
@@ -42,6 +63,14 @@ const ArtistsTable = () => {
             <td>{artist.is_active ? "Active" : "Suspended"}</td>
             <td className="flex gap-2">
               {/* actions go here */}
+                      <button
+  onClick={() => handleToggleArtist(artist.id)}
+  className={`px-3 py-1 rounded text-sm ${
+    artist.is_active ? "bg-red-500 text-white" : "bg-green-500 text-white"
+  }`}
+>
+  {artist.is_active ? "Suspend" : "Activate"}
+</button>
             </td>
           </tr>
         ))}

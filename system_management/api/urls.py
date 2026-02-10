@@ -25,6 +25,7 @@ urlpatterns = [
          name="artist_onboarding_step_2_api"),
     path('get_all_admins_api/', views.get_all_admins_api, name="get_all_admins_api"),
     path('get_all_artists_api/', views.get_all_artists_api, name="get_all_artists_api"),
+    path('toggle_user_active_api/<int:user_id>/', views.toggle_user_active_api, name="toggle_user_active_api"),
     # path('get_users_api/', views.get_users_api, name="get_users_api"),
     # path('get_user_types_api/', views.get_user_types_api, name="get_user_types_api"),
     # path('update_user_api/', views.update_user_api, name="update_user_api"),

@@ -527,6 +527,31 @@ def get_artist_profile_api(request):
         return Response(data, status=status.HTTP_404_NOT_FOUND)
 
 
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def toggle_user_active_api(request, user_id):
+    try:
+        user = User.objects.get(id=user_id)
+
+        # flip state
+        user.is_active = not user.is_active
+        user.save()
+
+        return Response({
+            "status": "success",
+            "user_id": user.id,
+            "is_active": user.is_active
+        }, status=status.HTTP_200_OK)
+
+    except User.DoesNotExist:
+        return Response({
+            "status": "error",
+            "message": "User not found"
+        }, status=status.HTTP_404_NOT_FOUND)
+
+
+
 @api_view(['PUT', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def update_profile_api(request):

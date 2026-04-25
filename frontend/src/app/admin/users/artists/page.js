@@ -6,10 +6,17 @@
 
 const ArtistsTable = () => {
   const [artists, setArtists] = useState([]);
-  
+  const [search, setSearch] = useState("");
+
   const [loading, setLoading] = useState(true);
 
   // const [artists, setArtists] = useState([]);
+
+  const filteredArtists = artists.filter(a =>
+  a.name.toLowerCase().includes(search.toLowerCase()) ||
+  a.email.toLowerCase().includes(search.toLowerCase())
+);
+
 
 const handleToggleArtist = async (artistId) => {
   try {
@@ -46,6 +53,7 @@ const handleToggleArtist = async (artistId) => {
   if (loading) return <p>Loading artists…</p>;
 
   return (
+    
     <table className="min-w-full text-sm">
       <thead>
         <tr className="border-b">

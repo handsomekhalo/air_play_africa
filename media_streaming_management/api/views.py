@@ -472,3 +472,24 @@ def discover_tracks(request):
 
 
 
+@api_view(["GET"])
+@permission_classes([AllowAny])  # Listeners don't need auth to play
+def get_listener_play_token_api(request, track_id):
+    """
+    Get a short-lived play token for any ready track.
+    No ownership check — any user (or anonymous) can play.
+    """
+    track = get_object_or_404(Track, id=track_id, status='ready')
+
+    payload = {
+        "track_id": track.id,
+        # "exp": (now() + timedelta(seconds=60)).isoformat()  # 60s token
+        "exp": (now() + timedelta(seconds=60)).timestamp()  # float, not isoformat
+
+    }
+    token = signing.dumps(payload)
+
+    return Response({
+        "status": "success",
+        "play_url": f"/media_streaming_management_api/play_with_token_api/{token}/"
+    })

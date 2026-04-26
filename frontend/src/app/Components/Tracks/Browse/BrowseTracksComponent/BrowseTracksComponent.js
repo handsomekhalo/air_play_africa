@@ -3,6 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import { getCsrfToken } from "@/utils/csrf";// ─── Utilities ───────────────────────────────────────────────────
 import { getAllTracks } from "@/utils/tracks_api_helper";
+import backendApi from "@/utils/backendApi";
+// import { getCsrfToken } from "@/utils/csrf"; 
+
+
 function formatDuration(seconds) {
   if (!seconds) return '0:00';
   const m = Math.floor(seconds / 60);
@@ -352,33 +356,70 @@ const BrowseTracksComponent = () => {
   }, [search, activeGenre, tracks]);
 
   // ── Play / pause logic ─────────────────────────────────────────
-  const handlePlay = (track) => {
-    if (!audioRef.current) return;
+//   const handlePlay = (track) => {
+//     if (!audioRef.current) return;
 
-    if (currentTrack?.id === track.id) {
-      // Toggle play/pause on same track
-      if (isPlaying) {
-        audioRef.current.pause();
-        setIsPlaying(false);
-      } else {
-        audioRef.current.play();
-        setIsPlaying(true);
-      }
-      return;
-    }
+//     if (currentTrack?.id === track.id) {
+//       // Toggle play/pause on same track
+//       if (isPlaying) {
+//         audioRef.current.pause();
+//         setIsPlaying(false);
+//       } else {
+//         audioRef.current.play();
+//         setIsPlaying(true);
+//       }
+//       return;
+//     }
 
-    // New track
-    audioRef.current.src = track.stream_url;
-    audioRef.current.load();
-    audioRef.current.play().then(() => {
-      setCurrentTrack(track);
+//     // New track
+//     audioRef.current.src = track.stream_url;
+//     audioRef.current.load();
+//     audioRef.current.play().then(() => {
+//       setCurrentTrack(track);
+//       setIsPlaying(true);
+//     }).catch(err => {
+//       console.error("Playback failed:", err);
+//     });
+//     setCurrentTrack(track);
+//   };
+const handlePlay = async (track) => {
+  if (!audioRef.current) return;
+
+  // Toggle same track
+  if (currentTrack?.id === track.id) {
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play();
       setIsPlaying(true);
-    }).catch(err => {
-      console.error("Playback failed:", err);
-    });
-    setCurrentTrack(track);
-  };
+    }
+    return;
+  }
 
+  try {
+    // Get a short-lived proxy URL — avoids CORS with Backblaze directly
+    const csrfToken = await getCsrfToken();
+    const res = await backendApi.get(
+      `/media_streaming_management_api/get_listener_play_token/${track.id}/`,
+      { headers: { "X-CSRFToken": csrfToken } }
+    );
+
+    // const playUrl = res.data.play_url;  // e.g. /media_streaming_management_api/play_with_token_api/xyz/
+    const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+    const playUrl = `${backendBase}${res.data.play_url}`;
+    audioRef.current.src = playUrl;
+    audioRef.current.load();
+    await audioRef.current.play();
+    setCurrentTrack(track);
+    setIsPlaying(true);
+
+  } catch (err) {
+    console.error("Playback failed:", err);
+  }
+};
+
+  
   const handlePlayPause = () => {
     if (!audioRef.current) return;
     if (isPlaying) {

@@ -7,9 +7,8 @@ from system_management.api.api_helpers import send_email_api
 
 urlpatterns = [
 
-    # path('register_api/', views.register_api, name='register_api'),
     path('login_api/', views.login_api, name="login_api"),
-
+    path('register_user_api/', views.register_user_api, name='register_user_api'),
      path('register_artist_api/', views.register_artist_api, name='register_artist_api'),
     path('register_listener_api/', views.register_listener_api, name='register_listener_api'),
     path('get_artist_api/', views.get_artist_api, name="get_artist_api"),

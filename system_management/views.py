@@ -94,7 +94,7 @@ def register_user(request):
             }, status=400)
 
         # Prepare API call to register user
-        url = f"{host_url(request)}{reverse_lazy('register_api')}"
+        url = f"{host_url(request)}{reverse_lazy('register_user_api')}"
         payload = json.dumps({
             "first_name": first_name,
             "last_name": last_name,

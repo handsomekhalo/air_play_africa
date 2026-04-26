@@ -97,6 +97,45 @@ export const handleToggleAdmin = async (adminId) => {
   }
 };
 
+// ADD these two functions to your existing helpers file
+// (same file as getAllArtists, toggleUserActive, etc.)
+ 
+export const getArtistProfile = async () => {
+  console.log("Fetching artist profile...");
+ 
+  const csrfToken = await getCsrfToken();
+ 
+  const response = await backendApi.get(
+    "/system_management/get_artist_profile/",
+    {
+      headers: {
+        "X-CSRFToken": csrfToken,
+      },
+    }
+  );
+ 
+  console.log("Fetched artist profile:", response.data);
+  return response.data;
+};
+ 
+export const updateArtistProfile = async (profileData) => {
+  console.log("Updating artist profile...", profileData);
+ 
+  const csrfToken = await getCsrfToken();
+ 
+  const response = await backendApi.patch(
+    "/system_management/update_profile/",
+    profileData,
+    {
+      headers: {
+        "X-CSRFToken": csrfToken,
+      },
+    }
+  );
+ 
+  console.log("Updated artist profile:", response.data);
+  return response.data;
+};
 
 
 

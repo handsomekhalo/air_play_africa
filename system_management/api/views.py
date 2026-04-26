@@ -6,7 +6,7 @@ from requests import Response
 
 from media_streaming_management.models import Artist
 from system_management import constants
-from system_management.api.serializers import  AdminCreateSerializer, AdminUpdateSerializer, AdminUserListSerializer, ArtistCreateSerializer, ArtistOnboardingSerializer, ArtistSerializer, GetAlltUserModelSerializer, GetArtistProfileSerializer, GetArtistSerializer, ListenerCreateSerializer, UpdateArtistProfileSerializer, UserModelSerializer, UserTypeModelSerializer
+from system_management.api.serializers import  AdminCreateSerializer, AdminUpdateSerializer, AdminUserListSerializer, ArtistCreateSerializer, ArtistOnboardingSerializer, ArtistSerializer, GetAlltUserModelSerializer, GetArtistProfileSerializer, GetArtistSerializer, ListenerCreateSerializer, ListenerRegisterSerializer, UpdateArtistProfileSerializer, UserModelSerializer, UserTypeModelSerializer
 
 from system_management import constants
 from system_management.api.serializers import  UserModelSerializer
@@ -55,128 +55,6 @@ from rest_framework.decorators import (
 from system_management.permissions import IsAdminUserType
 
 
-
-# @api_view(["POST"])
-# @permission_classes((AllowAny,))
-# def login_api(request):
-#     """
-#     Login API for user authentication
-#     """
-#     body = json.loads(request.body)
-#     email = body.get("email")
-#     password = body.get("password")
-
-#     if not email or not password:
-#         return Response(
-#             {"status": "error", "message": "Please provide both email and password"},
-#             status=status.HTTP_400_BAD_REQUEST,
-#         )
-
-#     user = authenticate(email=email, password=password)
-
-#     if not user:
-#         return Response(
-#             {"status": "error", "message": "Invalid Credentials"},
-#             status=status.HTTP_400_BAD_REQUEST,
-#         )
-
-#     if not user.is_active:
-#         return Response(
-#             {"status": "error", "message": "User is inactive, please contact admin"},
-#             status=status.HTTP_400_BAD_REQUEST,
-#         )
-
-#     token, _ = Token.objects.get_or_create(user=user)
-
-#     otp = "".join([str(random.randint(0, 9)) for _ in range(5)])  # temporary if needed
-
-#     user.last_login = datetime.now()
-#     user.save()
-
-#     user_serializer = UserModelSerializer(user)
-
-#     return Response(
-#         {
-#             "status": "success",
-#             "token": token.key,
-#             "otp": otp,
-#             "user": user_serializer.data,
-#         },
-#         status=status.HTTP_200_OK,
-#     )
-
-
-# @api_view(["POST"])
-# @permission_classes([AllowAny])
-# def login_api(request):
-#     """
-#     Login API for user authentication.
-#     Returns onboarding state if user is an artist.
-#     """
-#     body = json.loads(request.body)
-#     email = body.get("email")
-#     password = body.get("password")
-
-#     if not email or not password:
-#         return Response(
-#             {
-#                 "status": "error",
-#                 "message": "Please provide both email and password"
-#             },
-#             status=status.HTTP_400_BAD_REQUEST,
-#         )
-
-#     user = authenticate(email=email, password=password)
-
-#     if not user:
-#         return Response(
-#             {
-#                 "status": "error",
-#                 "message": "Invalid credentials"
-#             },
-#             status=status.HTTP_400_BAD_REQUEST,
-#         )
-
-#     if not user.is_active:
-#         return Response(
-#             {
-#                 "status": "error",
-#                 "message": "User is inactive, please contact admin"
-#             },
-#             status=status.HTTP_403_FORBIDDEN,
-#         )
-
-#     token, _ = Token.objects.get_or_create(user=user)
-
-#     user.last_login = datetime.now()
-#     user.save(update_fields=["last_login"])
-#     artist = Artist.objects.filter(user=user).first()
-
-
-#     response_data = {
-#         "status": "success",
-#         "token": token.key,
-#         "user": UserModelSerializer(user).data,
-#          "artist": {
-#         "onboarding_step": artist.onboarding_step if artist else None,
-#         "is_onboarded": artist.is_onboarded if artist else False
-#     }
-#     }
-
-#     # 🔑 Artist-specific onboarding state
-#     if user.user_type and user.user_type.name.lower() == "artist":
-
-#         try:
-#             artist = Artist.objects.get(user=user)
-#             response_data["artist"] = {
-#                 "is_onboarded": artist.is_onboarded
-#             }
-#         except Artist.DoesNotExist:
-#             response_data["artist"] = {
-#                 "is_onboarded": False
-#             }
-
-#     return Response(response_data, status=status.HTTP_200_OK)
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def login_api(request):
@@ -406,38 +284,7 @@ def get_all_artists_api(request):
     }, status=status.HTTP_200_OK)
 
 
-# @api_view(["GET"])
-# @permission_classes([IsAuthenticated])
-# def get_all_artists_api(request):
-#     users = User.objects.filter(user_type__name="Artist")
 
-#     serializer = AdminUserListSerializer(users, many=True)
-
-#     return Response({
-#         "status": "success",
-#         "artists": serializer.data
-#     }, status=status.HTTP_200_OK)
-
-
-
-
-# @api_view(["GET"])
-# @permission_classes([IsAuthenticated])
-# def get_all_admins_api(request):
-#     # print("🟢 Get All Admins API called")
-
-#     # print("ALL USERS:", list(User.objects.values("id", "email", "user_type_id")))
-
-#     users = User.objects.filter(user_type__name="Admin")
-#     # users = User.objects.all()
-
-
-#     serializer = AdminUserListSerializer(users, many=True)
-
-#     return Response({
-#         "status": "success",
-#         "admins": serializer.data
-#     }, status=status.HTTP_200_OK)
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_all_admins_api(request):
@@ -555,6 +402,8 @@ def toggle_user_active_api(request, user_id):
 @api_view(['PUT', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def update_profile_api(request):
+    data = request.data
+    print('incoming update profile data:', data)
     """
     Allows the logged-in user to update their profile based on their user type.
     - Artists update their User and Artist profile.
@@ -681,58 +530,6 @@ def update_admin_profile_api(request):
 
 
 
-# @api_view(['POST'])
-# @permission_classes([IsAuthenticated])
-# def artist_onboarding_api(request):
-#     """
-#     Complete artist onboarding after login
-#     """
-#     try:
-#         artist = Artist.objects.get(user=request.user)
-#     except Artist.DoesNotExist:
-#         return Response(
-#             {
-#                 'status': 'error',
-#                 'message': 'Artist profile not found.'
-#             },
-#             status=status.HTTP_404_NOT_FOUND
-#         )
-
-#     if artist.is_onboarded:
-#         return Response(
-#             {
-#                 'status': 'error',
-#                 'message': 'Artist already onboarded.'
-#             },
-#             status=status.HTTP_400_BAD_REQUEST
-#         )
-
-#     serializer = ArtistOnboardingSerializer(
-#         artist,
-#         data=request.data,
-#         partial=True
-#     )
-
-#     if not serializer.is_valid():
-#         return Response(
-#             {
-#                 'status': 'error',
-#                 'message': 'Invalid data.',
-#                 'errors': serializer.errors
-#             },
-#             status=status.HTTP_400_BAD_REQUEST
-#         )
-
-#     serializer.save(is_onboarded=True)
-
-#     return Response(
-#         {
-#             'status': 'success',
-#             'message': 'Artist onboarding completed.',
-#             'data': serializer.data
-#         },
-#         status=status.HTTP_200_OK
-#     )
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def artist_onboarding_step_1_api(request):
@@ -856,22 +653,54 @@ def artist_onboarding_step_2_api(request):
     )
 
 
-
-# @api_view(["POST"])
-# @permission_classes([IsAuthenticated])
-# def artist_onboarding_api(request):
-#     """
-#     Completes artist profile after first login
-#     """
-#     profile = request.user.profile
-
-#     profile.bio = request.data.get("bio")
-#     profile.location = request.data.get("location")
-#     profile.wallet_address = request.data.get("wallet_address")
-#     profile.is_onboarded = True
-#     profile.save()
-
-#     return Response({
-#         "status": "success",
-#         "message": "Artist profile completed"
-#     }, status=200)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def register_user_api(request):
+    """
+    API endpoint: Register a new Listener.
+    Called internally by the register_user proxy view.
+ 
+    Expected body:
+    {
+        "first_name":       "Jane",
+        "last_name":        "Doe",
+        "email":            "jane@example.com",
+        "password":         "securepass123",
+        "confirm_password": "securepass123"
+    }
+ 
+    Returns:
+    {
+        "status":  "success",
+        "message": "User registered successfully",
+        "user_id": 42
+    }
+    """
+    serializer = ListenerRegisterSerializer(data=request.data)
+ 
+    if not serializer.is_valid():
+        # Flatten validation errors into a readable format
+        errors = serializer.errors
+        # Pull out the first human-readable message to surface as main message
+        first_message = next(
+            (
+                v[0] if isinstance(v, list) else str(v)
+                for v in errors.values()
+            ),
+            "Registration failed."
+        )
+        return Response({
+            "status":  "error",
+            "message": first_message,
+            "errors":  errors,
+        }, status=status.HTTP_400_BAD_REQUEST)
+ 
+    user = serializer.save()
+ 
+    return Response({
+        "status":  "success",
+        "message": "User registered successfully",
+        "user_id": user.id,
+    }, status=status.HTTP_201_CREATED)
+ 
+ 

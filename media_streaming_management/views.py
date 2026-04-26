@@ -222,4 +222,58 @@ def proxy_get_play_token(request, track_id):
 
 
 
+@csrf_exempt
+def retrieve_all_tracks(request):
+    """
+    Proxy view to retrieve all ready tracks.
+    Supports optional query params: ?genre=&mood=&artist=
+    """
+    print("🟢 Retrieve All Tracks Proxy called")
 
+    if request.method != "GET":
+        return JsonResponse({
+            "status": "error",
+            "message": "Method not allowed"
+        }, status=405)
+
+    try:
+        # 1️⃣ Build API URL — preserve any query params from the original request
+        url_path = reverse_lazy("retrieve_all_tracks_api")
+        api_url = f"{host_url(request)}{url_path}"
+
+        # Forward query params (?genre=afrobeat&mood=happy etc.)
+        query_params = request.GET.urlencode()
+        if query_params:
+            api_url = f"{api_url}?{query_params}"
+
+        print("API URL:", api_url)
+
+        # 2️⃣ Forward request — no auth header needed (AllowAny)
+        response = requests.get(api_url, timeout=30)
+
+        print("API Response Status:", response.status_code)
+
+        # 3️⃣ Handle errors
+        if response.status_code != 200:
+            return JsonResponse({
+                "status": "error",
+                "message": "Failed to retrieve tracks",
+                "details": response.text
+            }, status=response.status_code)
+
+        # 4️⃣ Success
+        return JsonResponse(response.json(), status=200)
+
+    except requests.exceptions.RequestException as e:
+        print("❌ Request Exception:", str(e))
+        return JsonResponse({
+            "status": "error",
+            "message": f"Request failed: {str(e)}"
+        }, status=500)
+
+    except Exception as e:
+        print("❌ General Exception:", str(e))
+        return JsonResponse({
+            "status": "error",
+            "message": f"Server error: {str(e)}"
+        }, status=500)

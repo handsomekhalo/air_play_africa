@@ -5,6 +5,9 @@ import { getCsrfToken } from "@/utils/csrf";// ─── Utilities ────�
 import { getAllTracks } from "@/utils/tracks_api_helper";
 import backendApi from "@/utils/backendApi";
 import { v4 as uuidv4 } from 'uuid';
+import { useAuthGuard } from '@/utils/useAuthGuard';
+
+// inside the component, as the very first line before any other logic:
 
 // import { getCsrfToken } from "@/utils/csrf"; 
 
@@ -295,6 +298,7 @@ function TrackCard({ track, isActive, isPlaying, onPlay }) {
 // ─── Main Component ──────────────────────────────────────────────
 
 const BrowseTracksComponent = () => {
+  useAuthGuard('/listener/login', 'Listener');
   const [tracks, setTracks]         = useState([]);
   const [filtered, setFiltered]     = useState([]);
   const [loading, setLoading]       = useState(true);

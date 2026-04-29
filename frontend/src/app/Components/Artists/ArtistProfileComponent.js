@@ -1,5 +1,7 @@
 'use client';
 
+import useAuthGuard from '@/utils/useAuthGuard';
+
 import { useState, useEffect } from "react";
 import { getArtistProfile } from "@/utils/admin_artists";
 import { updateArtistProfile } from "@/utils/admin_artists";// ─── Field config ────────────────────────────────────────────────
@@ -50,6 +52,8 @@ function flattenProfile(data) {
 // ─── Component ───────────────────────────────────────────────────
 
 const ArtistProfileComponent = () => {
+  useAuthGuard('/login', 'Artist');
+
   const [profile, setProfile]   = useState(null);
   const [form, setForm]         = useState({});
   const [loading, setLoading]   = useState(true);

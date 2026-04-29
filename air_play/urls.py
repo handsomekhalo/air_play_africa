@@ -26,19 +26,10 @@ from django.urls import path , include, re_path, include
 from system_management import views
 
 
-
-
-# Define the redirect to Next.js frontend
-# def login_view(request):
-#     return redirect('http://localhost:3000') 
-
-
-
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.login_view),  # Root URL will redirect to Next.js landing page
-    # path('', redirect_to_nextjs),  # Root URL will redirect to Next.js landing page
-    # path('', views.login_view, name='login_view'),
+
     path('system_management/', include('system_management.urls')),
     path('system_management_api/', include('system_management.api.urls')),
     path('media_streaming_management/', include('media_streaming_management.urls')),

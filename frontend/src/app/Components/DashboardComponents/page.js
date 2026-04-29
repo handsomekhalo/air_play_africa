@@ -1,12 +1,13 @@
 "use client"
 
+import { useAuthGuard } from "@/utils/useAuthGuard";
 import ArtistDashboardPage from "../DashboardTypeComponent/ArtistDashboardComponent";
 // import AdminDashboard from "../DashboardTypeComponent/AdminDashboardComponent";
 import Admin_Dashboard from "../../admin/dashboard/page";
 
 
 export default function DashboardPage() {
-  
+  useAuthGuard('/login', 'Admin');
 
   const stats = {
     totalReconciliations: 12,

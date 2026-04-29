@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { getCsrfToken } from "@/utils/csrf";// ─── Utilities ───────────────────────────────────────────────────
 import { getAllTracks } from "@/utils/tracks_api_helper";
 import backendApi from "@/utils/backendApi";
+import { v4 as uuidv4 } from 'uuid';
+
 // import { getCsrfToken } from "@/utils/csrf"; 
 
 
@@ -301,29 +303,33 @@ const BrowseTracksComponent = () => {
   const [activeGenre, setActiveGenre] = useState('All');
   const [currentTrack, setCurrentTrack] = useState(null);
   const [isPlaying, setIsPlaying]   = useState(false);
+  const sessionId = useRef(uuidv4()); // unique per browser session
+  const listenTimerRef = useRef(null);
+  const streamSessionRef = useRef(null); // stores session_id per track play
+
 
   const audioRef = useRef(null);
 
   // ── Fetch tracks ───────────────────────────────────────────────
-  useEffect(() => {
-    const fetch = async () => {
-      try {
-        const res = await getAllTracks();
-        if (res.status === 'success') {
-          setTracks(res.data);
-          setFiltered(res.data);
-        } else {
-          setError('Failed to load tracks.');
-        }
-      } catch (err) {
-        console.error(err);
-        setError('Could not connect to server.');
-      } finally {
-        setLoading(false);
+useEffect(() => {
+  const fetch = async () => {
+    try {
+      const res = await getAllTracks();
+      if (res.status === 'success') {
+        setTracks(res.data);
+        setFiltered(res.data);
+      } else {
+        setError('Failed to load tracks.');
       }
-    };
-    fetch();
-  }, []);
+    } catch (err) {
+      console.error(err);
+      setError('Could not connect to server.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetch();
+}, []);
 
   // ── Derive genre list from data ────────────────────────────────
   const genres = ['All', ...new Set(
@@ -333,59 +339,29 @@ const BrowseTracksComponent = () => {
   )];
 
   // ── Filter logic ───────────────────────────────────────────────
-  useEffect(() => {
-    let result = tracks;
-
-    if (activeGenre !== 'All') {
-      result = result.filter(t =>
-        (t.ai_genre || t.genre || '').toLowerCase().includes(activeGenre.toLowerCase())
-      );
-    }
-
-    if (search.trim()) {
-      const term = search.toLowerCase();
-      result = result.filter(t =>
-        (t.title        || '').toLowerCase().includes(term) ||
-        (t.artist_name  || '').toLowerCase().includes(term) ||
-        (t.ai_genre     || '').toLowerCase().includes(term) ||
-        (t.ai_mood      || '').toLowerCase().includes(term)
-      );
-    }
-
-    setFiltered(result);
-  }, [search, activeGenre, tracks]);
+useEffect(() => {
+  let result = tracks;
+  if (activeGenre !== 'All') {
+    result = result.filter(t =>
+      (t.ai_genre || t.genre || '').toLowerCase().includes(activeGenre.toLowerCase())
+    );
+  }
+  if (search.trim()) {
+    const term = search.toLowerCase();
+    result = result.filter(t =>
+      (t.title       || '').toLowerCase().includes(term) ||
+      (t.artist_name || '').toLowerCase().includes(term) ||
+      (t.ai_genre    || '').toLowerCase().includes(term) ||
+      (t.ai_mood     || '').toLowerCase().includes(term)
+    );
+  }
+  setFiltered(result);
+}, [search, activeGenre, tracks]);
 
   // ── Play / pause logic ─────────────────────────────────────────
-//   const handlePlay = (track) => {
-//     if (!audioRef.current) return;
 
-//     if (currentTrack?.id === track.id) {
-//       // Toggle play/pause on same track
-//       if (isPlaying) {
-//         audioRef.current.pause();
-//         setIsPlaying(false);
-//       } else {
-//         audioRef.current.play();
-//         setIsPlaying(true);
-//       }
-//       return;
-//     }
-
-//     // New track
-//     audioRef.current.src = track.stream_url;
-//     audioRef.current.load();
-//     audioRef.current.play().then(() => {
-//       setCurrentTrack(track);
-//       setIsPlaying(true);
-//     }).catch(err => {
-//       console.error("Playback failed:", err);
-//     });
-//     setCurrentTrack(track);
-//   };
 const handlePlay = async (track) => {
   if (!audioRef.current) return;
-
-  // Toggle same track
   if (currentTrack?.id === track.id) {
     if (isPlaying) {
       audioRef.current.pause();
@@ -396,46 +372,97 @@ const handlePlay = async (track) => {
     }
     return;
   }
-
   try {
-    // Get a short-lived proxy URL — avoids CORS with Backblaze directly
     const csrfToken = await getCsrfToken();
     const res = await backendApi.get(
       `/media_streaming_management_api/get_listener_play_token/${track.id}/`,
       { headers: { "X-CSRFToken": csrfToken } }
     );
-
-    // const playUrl = res.data.play_url;  // e.g. /media_streaming_management_api/play_with_token_api/xyz/
     const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
     const playUrl = `${backendBase}${res.data.play_url}`;
+    stopListenTimer();                  // stop previous track timer
     audioRef.current.src = playUrl;
     audioRef.current.load();
     await audioRef.current.play();
     setCurrentTrack(track);
     setIsPlaying(true);
-
+    recordStream(track);               // record + start new timer
   } catch (err) {
     console.error("Playback failed:", err);
   }
 };
-
   
-  const handlePlayPause = () => {
-    if (!audioRef.current) return;
-    if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      audioRef.current.play();
-      setIsPlaying(true);
-    }
-  };
 
-  const handleClose = () => {
-    audioRef.current?.pause();
-    setCurrentTrack(null);
+const handlePlayPause = () => {
+  if (!audioRef.current) return;
+  if (isPlaying) {
+    audioRef.current.pause();
     setIsPlaying(false);
+  } else {
+    audioRef.current.play();
+    setIsPlaying(true);
+  }
+};
+
+
+const handleClose = () => {
+  audioRef.current?.pause();
+  stopListenTimer();
+  setCurrentTrack(null);
+  setIsPlaying(false);
+};
+
+const recordStream = async (track) => {
+  const session = uuidv4();
+  streamSessionRef.current = session;
+  try {
+    const csrfToken = await getCsrfToken();
+    await backendApi.post(
+      '/media_streaming_management_api/record_stream_api/',
+      { track: track.id, session_id: session, listen_time: 0 },
+      { headers: { "X-CSRFToken": csrfToken } }
+    );
+    console.log("Stream recorded:", track.title);
+    startListenTimer(session);
+  } catch (err) {
+    console.log("Stream record skipped:", err?.response?.data?.message);
+  }
+};
+
+
+const startListenTimer = (session) => {
+  if (listenTimerRef.current) clearInterval(listenTimerRef.current);
+  let elapsed = 0;
+  listenTimerRef.current = setInterval(async () => {
+    elapsed += 30;
+    try {
+      const csrfToken = await getCsrfToken();
+      await backendApi.patch(
+        `/media_streaming_management_api/update_stream_api/${session}/`,
+        { listen_time: elapsed },
+        { headers: { "X-CSRFToken": csrfToken } }
+      );
+      console.log(`Listen time updated: ${elapsed}s`);
+    } catch (err) {
+      console.error("Failed to update listen time:", err);
+    }
+  }, 30000);
+};
+
+const stopListenTimer = () => {
+  if (listenTimerRef.current) {
+    clearInterval(listenTimerRef.current);
+    listenTimerRef.current = null;
+  }
+};
+
+
+// Cleanup timer on unmount
+useEffect(() => {
+  return () => {
+    if (listenTimerRef.current) clearInterval(listenTimerRef.current);
   };
+}, []);
 
   // ── Render ─────────────────────────────────────────────────────
   return (

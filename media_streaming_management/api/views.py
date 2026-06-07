@@ -493,3 +493,41 @@ def get_listener_play_token_api(request, track_id):
         "status": "success",
         "play_url": f"/media_streaming_management_api/play_with_token_api/{token}/"
     })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_all_tracks_admin_api(request):
+    """Admin — get all tracks regardless of status."""
+    if request.user.user_type.name != 'Admin':
+        return Response({'status': 'error', 'message': 'Unauthorized'}, status=403)
+    
+    tracks = Track.objects.all().order_by('-upload_date')
+    serializer = GetAllTracksDetailSerializer(tracks, many=True, context={'request': request})
+    return Response({'status': 'success', 'data': serializer.data}, status=200)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def moderate_track_api(request, track_id):
+    """Admin — approve or reject a track."""
+    if request.user.user_type.name != 'Admin':
+        return Response({'status': 'error', 'message': 'Unauthorized'}, status=403)
+
+    track = get_object_or_404(Track, id=track_id)
+    action = request.data.get('action')  # 'approve' or 'reject'
+
+    if action == 'approve':
+        track.status = 'ready'
+    elif action == 'reject':
+        track.status = 'failed'
+    else:
+        return Response({'status': 'error', 'message': 'Invalid action. Use approve or reject.'}, status=400)
+
+    track.save(update_fields=['status'])
+    return Response({
+        'status': 'success',
+        'message': f'Track {action}d successfully.',
+        'track_id': track.id,
+        'new_status': track.status,
+    }, status=200)

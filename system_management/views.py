@@ -60,7 +60,7 @@ def login_view(request):
     print("🟢 Login view called")
     data =request.data
 
-    print("Login view called with data:", data)
+    # print("Login view called with data:", data)
 
 
     return redirect("http://localhost:3000/")  # Next.js is running here

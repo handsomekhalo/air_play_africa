@@ -1,14 +1,13 @@
 'use client';
 
-import useAuthGuard from '@/utils/useAuthGuard';
-
+// import { useAuthGuard } from '@/utils/useAuthGuard';
   import React from 'react';
 
 import DashboardPage from '../../DashboardComponents/page'; 
  import Navbar from './SideBarComponent/navheader';
   
   export default function Dashboard() {
-  useAuthGuard('/login', 'Admin');
+  // useAuthGuard('/login', 'Admin');
   return (
     
     <div className="flex min-h-screen">

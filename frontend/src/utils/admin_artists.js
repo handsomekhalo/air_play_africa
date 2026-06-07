@@ -152,3 +152,33 @@ export const handleToggleArtist = async (artistId) => {
     console.error("Failed to toggle user", err);
   }
 };
+
+
+// ─────────────────────────────────────────────────────────────────
+// ADD these two functions to frontend/src/utils/admin_artists.js
+// (same file as getAllArtists, toggleUserActive, etc.)
+// ─────────────────────────────────────────────────────────────────
+
+export const getAllTracksAdmin = async () => {
+  console.log("Fetching all tracks for admin...");
+  const csrfToken = await getCsrfToken();
+  const response = await backendApi.get(
+    "/system_management/get_all_tracks_admin/",
+    { headers: { "X-CSRFToken": csrfToken } }
+  );
+  console.log("Fetched admin tracks:", response.data);
+  return response.data;
+};
+
+export const moderateTrack = async (trackId, action) => {
+  // action: 'approve' or 'reject'
+  console.log(`Moderating track ${trackId}: ${action}`);
+  const csrfToken = await getCsrfToken();
+  const response = await backendApi.patch(
+    `/system_management/moderate_track/${trackId}/`,
+    { action },
+    { headers: { "X-CSRFToken": csrfToken } }
+  );
+  console.log("Moderate track response:", response.data);
+  return response.data;
+};

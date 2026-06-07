@@ -1,6 +1,6 @@
 'use client';
 
-import useAuthGuard from '@/utils/useAuthGuard';
+import { useAuthGuard } from "@/utils/useAuthGuard";
 
 import { useState, useEffect } from "react";
 import { getArtistProfile } from "@/utils/admin_artists";

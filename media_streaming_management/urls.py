@@ -12,5 +12,7 @@ urlpatterns = [
     path('proxy_get_play_token/<int:track_id>/', views.proxy_get_play_token, 
          name="proxy_get_play_token"),
     path('retrieve_all_tracks/', views.retrieve_all_tracks, name='retrieve_all_tracks'),
+    path('get_all_tracks_admin/', views.get_all_tracks_admin, name='get_all_tracks_admin'),
+    path('moderate_track/<int:track_id>/', views.moderate_track, name='moderate_track'),
 
 ]

@@ -1,3 +1,4 @@
+import json
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
@@ -277,3 +278,51 @@ def retrieve_all_tracks(request):
             "status": "error",
             "message": f"Server error: {str(e)}"
         }, status=500)
+    
+
+@csrf_exempt
+def get_all_tracks_admin(request):
+    """Proxy — get all tracks for admin."""
+    if request.method != 'GET':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+    try:
+        auth_header = request.headers.get('Authorization', '')
+        token = None
+        if auth_header.startswith('Token '):
+            token = auth_header.split('Token ')[-1]
+        elif auth_header.startswith('Bearer '):
+            token = auth_header.split('Bearer ')[-1]
+        if not token:
+            return JsonResponse({'status': 'error', 'message': 'Authorization token required.'}, status=401)
+
+        url = f"{host_url(request)}{reverse_lazy('get_all_tracks_admin_api')}"
+        response = requests.get(url, headers={'Authorization': f'Token {token}'}, timeout=30)
+        return JsonResponse(response.json(), status=response.status_code)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@csrf_exempt
+def moderate_track(request, track_id):
+    """Proxy — approve or reject a track."""
+    if request.method != 'PATCH':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+    try:
+        auth_header = request.headers.get('Authorization', '')
+        token = None
+        if auth_header.startswith('Token '):
+            token = auth_header.split('Token ')[-1]
+        elif auth_header.startswith('Bearer '):
+            token = auth_header.split('Bearer ')[-1]
+        if not token:
+            return JsonResponse({'status': 'error', 'message': 'Authorization token required.'}, status=401)
+
+        body = json.loads(request.body or '{}')
+        url = f"{host_url(request)}{reverse_lazy('moderate_track_api', kwargs={'track_id': track_id})}"
+        response = requests.patch(url, json=body, headers={
+            'Authorization': f'Token {token}',
+            'Content-Type': 'application/json',
+        }, timeout=30)
+        return JsonResponse(response.json(), status=response.status_code)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

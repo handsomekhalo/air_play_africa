@@ -54,6 +54,9 @@ class Track(models.Model):
     like_count = models.IntegerField(default=0)
     download_count = models.IntegerField(default=0)
     merit_score = models.FloatField(default=0.0)  # ✅ ADD THIS LINE
+    # Track model additions
+    is_split_enabled = models.BooleanField(default=False)
+    split_confirmed  = models.BooleanField(default=False)
     
     # Timestamps
     upload_date = models.DateTimeField(auto_now_add=True)
@@ -70,7 +73,26 @@ class Track(models.Model):
     def __str__(self):
         return f"{self.title} by {self.artist.user.first_name} {self.artist.user.last_name}"
 
+class TrackContributor(models.Model):
+    ROLE_CHOICES = [
+        ('feature',  'Featured Artist'),
+        ('producer', 'Producer'),
+        ('writer',   'Writer'),
+    ]
+    STATUS_CHOICES = [
+        ('pending',   'Pending'),
+        ('accepted',  'Accepted'),
+        ('rejected',  'Rejected'),
+    ]
+    track      = models.ForeignKey(Track, on_delete=models.CASCADE, related_name='contributors')
+    user       = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    email      = models.EmailField()  # for invites before they register
+    role       = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    percentage = models.DecimalField(max_digits=5, decimal_places=2)
+    status     = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
 
+    class Meta:
+        unique_together = ('track', 'email')
 
 class Stream(models.Model):
     track = models.ForeignKey(Track, on_delete=models.CASCADE, related_name='streams')

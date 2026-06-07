@@ -19,6 +19,8 @@ urlpatterns = [
     path('get_play_token_api/<int:track_id>/', views.get_play_token_api, name='get_play_token_api'),
     # path('play_with_token_api/<str:token>/', views.play_with_token_api, name='play_with_token_api'),
     path('get_listener_play_token/<int:track_id>/',views.get_listener_play_token_api,name='get_listener_play_token_api'),
+    path('get_all_tracks_admin_api/', views.get_all_tracks_admin_api, name='get_all_tracks_admin_api'),
+    path('moderate_track_api/<int:track_id>/', views.moderate_track_api, name='moderate_track_api'),
     re_path(r'^play_with_token_api/(?P<token>.+)/$',views.play_with_token_api,name='play_with_token_api')
 
 ]

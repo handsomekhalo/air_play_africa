@@ -141,14 +141,15 @@ export default function LoginPage() {
       return;
     }
 
-    // router.replace('/artist/dashboard');
-          router.replace('/Components/System_Management_Components/dashboard');
+    router.replace('/artist/dashboard');
+          // router.replace('/Components/System_Management_Components/dashboard');
     
             return;
           }
 
           // fallback (admins, etc.)
-          router.replace('/Components/System_Management_Components/dashboard');
+          // router.replace('/Components/System_Management_Components/dashboard');
+          router.replace('/admin/dashboard');
         }
 
       else {

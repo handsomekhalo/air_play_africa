@@ -2,12 +2,12 @@
 
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "./UI/Card";
-import { Badge } from "./UI/Badge";
+import { Card, CardContent, CardHeader, CardTitle } from "../../DashboardUIComponents/UI/Card";
+import { Badge } from "../../DashboardUIComponents/UI/Badge";
 import { Music, TrendingUp, Award } from "lucide-react";
 
 import backendApi from "@/utils/backendApi";
-import { useAuth } from "../../../../AuthContext";
+import { useAuth } from "../../../../../AuthContext";
 
 export const TrackAnalytics = () => {
   const { authToken, isAuthenticated } = useAuth();

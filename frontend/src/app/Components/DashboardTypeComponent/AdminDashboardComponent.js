@@ -1,6 +1,6 @@
 "use client";
 
-import { MetricCard } from "../DashboardUIComponents/Metrics";
+import { MetricCard } from "../Admin/UI/Metrics";
 // import { RevenueChart } from "../DashboardUIComponents/ReveneueChart";
 // import { TrackAnalytics } from "../DashboardUIComponents/TrackAnalytics";
 

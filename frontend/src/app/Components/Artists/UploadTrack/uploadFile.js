@@ -2,10 +2,8 @@
 import React, { useState } from "react";
 import Swal from "sweetalert2";
 
-import { useAuth } from "../../../../AuthContext";
-// import UploadFileButton from "./uploadFileButton";
- import UploadFileButton from './UploadFileComponent'
-
+import { useAuth } from "../../../../../AuthContext";// import UploadFileButton from "./uploadFileButton";
+import UploadFileButton from "./UploadFileComponent";
 import backendApi from "@/utils/backendApi";
 
 export default function UploadPage({ onSuccess }) {

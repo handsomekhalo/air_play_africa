@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from "react";
 import { Upload, Loader2 } from "lucide-react";
-import UploadPage from "./uploadFile";
+// import UploadPage from "../uploadFile";
 
 export default function UploadFileButton({ onUpload, isUploading }) {
   const [dragActive, setDragActive] = useState(false);

@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 
-import { MetricCard } from "../DashboardUIComponents/Metrics";
-import { RevenueChart } from "../DashboardUIComponents/ReveneueChart";
-import { TrackAnalytics } from "../DashboardUIComponents/TrackAnalytics";
+import { MetricCard } from "../Admin/UI/Metrics";
+// import { RevenueChart } from "../Admin/UI/RevenueChart";
+import { RevenueChart } from "../Admin/UI/RevenueChart";
+import { TrackAnalytics } from "../Admin/UI/TrackAnalytics";
 import { Button } from "../DashboardUIComponents/UI/Button";
-import UploadFileComponent from "../DashboardComponents/UploadFileComponent";
-import UploadPage from "../DashboardComponents/uploadFile";
+import UploadFileComponent from "../Artists/UploadTrack/UploadFileComponent";
+// import UploadPage from "../Artists/uploadFile";
+import UploadPage from "../Artists/UploadTrack/uploadFile";
 import ProfileModal from "../../Profile/profile_modall";
 import {
   DollarSign,

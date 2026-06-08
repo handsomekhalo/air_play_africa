@@ -1,8 +1,8 @@
 "use client"
 
 // import { useAuthGuard } from "@/utils/useAuthGuard";
-import ArtistDashboardPage from "../DashboardTypeComponent/ArtistDashboardComponent";
-// import AdminDashboard from "../DashboardTypeComponent/AdminDashboardComponent";
+// import ArtistDashboardPage from "../DashboardTypeComponent/ArtistDashboardComponent";
+
 import Admin_Dashboard from "../../admin/dashboard/page";
 
 

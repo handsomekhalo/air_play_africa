@@ -1,8 +1,8 @@
 "use client";
 
-import { Card } from "./UI/Card";
+import { Card } from "../../DashboardUIComponents/UI/Card";
 
-import { cn } from "../lib/utils";
+import { cn } from "../../lib/utils";
 
 export const MetricCard = ({
   title,

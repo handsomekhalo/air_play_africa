@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle,} 
   
-from "./UI/Card";
+from "../../DashboardUIComponents/UI/Card";
 
 import {
   AreaChart,

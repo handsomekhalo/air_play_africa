@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MetricCard } from "../../Components/DashboardUIComponents/Metrics";
+import { MetricCard } from "../../Components/Admin/UI/Metrics";
 import {getAdminOverview} from "../../../utils/admin_overview";
 import Sidebar from "@/app/Components/System_Management_Components/dashboard/SideBarComponent/sidebar";
 

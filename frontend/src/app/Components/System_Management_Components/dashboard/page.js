@@ -3,7 +3,7 @@
 // import { useAuthGuard } from '@/utils/useAuthGuard';
   import React from 'react';
 
-import DashboardPage from '../../DashboardComponents/page'; 
+import DashboardPage from '../../Admin/AdminDashboardComponent'; 
  import Navbar from './SideBarComponent/navheader';
   
   export default function Dashboard() {

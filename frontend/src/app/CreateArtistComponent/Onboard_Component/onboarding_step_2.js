@@ -19,7 +19,7 @@ export default function StepTwoOnboarding() {
 
     try {
       await backendApi.post(
-        '/artist_onboarding_step_2/',
+        'system_management/artist_onboarding_step_2/',
         { wallet_address: wallet || null } // ✅ optional
       );
       router.push('/Components/System_Management_Components/dashboard');

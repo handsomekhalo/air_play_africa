@@ -548,14 +548,21 @@ def artist_onboarding_step_1_api(request):
         return Response(
             {"status": "error", "message": "Artist profile not found"},
             status=status.HTTP_404_NOT_FOUND
-        )
+        )   
+    
 
     if artist.onboarding_step > 1:
-        print("Step 1 already completed, cannot redo.")
         return Response(
-            {"status": "error", "message": "Step 1 already completed"},
-            status=status.HTTP_400_BAD_REQUEST
+            {"status": "success", "message": "Step 1 already completed"},  # ← 200 not 400
+            status=status.HTTP_200_OK
         )
+
+    # if artist.onboarding_step > 1:
+    #     print("Step 1 already completed, cannot redo.")
+    #     return Response(
+    #         {"status": "error", "message": "Step 1 already completed"},
+    #         status=status.HTTP_400_BAD_REQUEST
+    #     )
 
     serializer = ArtistOnboardingSerializer(
         artist,
@@ -613,13 +620,20 @@ def artist_onboarding_step_2_api(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
+    # if artist.is_onboarded:
+    #     return Response(
+    #         {
+    #             "status": "error",
+    #             "message": "Artist already onboarded"
+    #         },
+    #         status=status.HTTP_400_BAD_REQUEST
     if artist.is_onboarded:
         return Response(
             {
-                "status": "error",
+                "status": "success",
                 "message": "Artist already onboarded"
             },
-            status=status.HTTP_400_BAD_REQUEST
+            status=status.HTTP_200_OK  # ← 200 not 400
         )
 
     serializer = ArtistOnboardingSerializer(

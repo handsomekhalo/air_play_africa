@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../../AuthContext';
+import { useAuth } from '../../../../../AuthContext';
 import backendApi from '@/utils/backendApi';
 
 export default function StepOneOnboarding() {

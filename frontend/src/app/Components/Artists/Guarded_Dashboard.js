@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import getMyArtistProfile from '@/app/CreateArtistComponent/artist';
-import ArtistDashboardUI from '../Components/DashboardTypeComponent/ArtistDashboardComponent';
+import getArtistProfile  from '@/app/Components/lib/artist';
+import ArtistDashboardUI from '../DashboardTypeComponent/ArtistDashboardComponent';
 export default function ArtistDashboardPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getMyArtistProfile()
+    getArtistProfile()
       .then((profile) => {
         if (!profile || !profile.id) {
           router.replace('/artist/onboarding');

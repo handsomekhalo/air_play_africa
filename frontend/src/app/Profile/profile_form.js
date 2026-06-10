@@ -6,7 +6,8 @@ import { useEffect, useState } from 'react';
 //   getMyArtistProfile,
 //   updateMyArtistProfile,
 // } from '@/services/artistProfile';
-import { getArtistProfile, updateMyArtistProfile } from '@/app/CreateArtistComponent/artist.js';
+import { getArtistProfile , updateMyArtistProfile } from '../../utils/artist';
+
 // import updateMyArtistProfile from '@/app/CreateArtistComponent/artist.js';
 import backendApi from '@/utils/backendApi';
 

@@ -8,7 +8,7 @@ class Artist(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     bio = models.TextField(blank=True)
     location = models.CharField(max_length=100, default='Africa')  # Tie to cultural focus
-    wallet_address = models.CharField(max_length=42, blank=True)  # For blockchain payouts (e.g., ETH/Solana)
+    wallet_address = models.CharField(max_length=42, blank=True,  null=True, unique=True)  # For blockchain payouts (e.g., ETH/Solana)
     is_onboarded = models.BooleanField(default=False)  # ✅ NEW
     onboarding_step = models.PositiveSmallIntegerField(default=1)
 

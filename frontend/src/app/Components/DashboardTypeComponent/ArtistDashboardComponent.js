@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import {useEffect, useState } from "react";
+import { useRouter } from "next/navigation"; 
 
 import { MetricCard } from "../Admin/UI/Metrics";
 // import { RevenueChart } from "../Admin/UI/RevenueChart";
@@ -20,11 +21,15 @@ import {
   Upload,
   Wallet,
 } from "lucide-react";
+import { getArtistProfile  } from "../../../utils/artist";
 
 export default function ArtistDashboardPage() {
   const [showUpload, setShowUpload] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
+    const [profile, setProfile] = useState(null);
 
+    const router = useRouter();
+  
 
   // Mock data (replace later with API calls)
   const revenueData = [
@@ -70,6 +75,45 @@ export default function ArtistDashboardPage() {
     },
   ];
 
+  // Add to ArtistDashboardComponent.js — replace mock data loading with:
+
+  useEffect(() => {
+  getArtistProfile()
+    .then((res) => {
+      // API wraps in { status, data: {...} }
+      const profile = res.data;
+
+      if (!profile?.id) {
+        router.push('/artist-onboarding?step=1');
+        return;
+      }
+
+      if (!profile?.is_onboarded) {
+        router.push(`/artist-onboarding?step=${profile.onboarding_step || 1}`);
+        return;
+      }
+
+      // Artist is fully onboarded — set profile
+      setProfile(profile);
+    })
+    .catch((err) => {
+      console.error('Failed to load artist profile:', err);
+      router.push('/artist-onboarding?step=1');
+    });
+}, [router]);
+// useEffect(() => {
+//   getArtistProfile()
+//     .then((data) => {
+//       if (!data?.id) {
+//         router.push('/artist-onboarding?step=1');
+//       } else {
+//         setProfile(data);
+//         // real name in header
+//       }
+//     })
+//     .catch(() => router.push('/artist-onboarding?step=1'));
+// }, [router]);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -77,7 +121,10 @@ export default function ArtistDashboardPage() {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold">Artist Dashboard</h1>
+              {/* <h1 className="text-2xl font-bold">Artist Dashboard</h1> */}
+            <h1 className="text-2xl font-bold">
+              Welcome, {profile?.user?.first_name || 'Artist'}
+            </h1>
               <p className="text-sm text-muted-foreground">
                 Transparent earnings. Fair discovery. Own your masters.
               </p>

@@ -4,7 +4,7 @@
 // import api from '@/src/api/api';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../../AuthContext';
+import { useAuth } from '../../../../../AuthContext';
 
 
 import backendApi from '@/utils/backendApi';
@@ -14,23 +14,44 @@ export default function StepTwoOnboarding() {
   const { authToken } = useAuth();
   const [wallet, setWallet] = useState('');
 
+  // const submit = async () => {
+  //   if (!authToken) return;
+
+  //   try {
+  //     await backendApi.post(
+  //       'system_management/artist_onboarding_step_2/',
+  //       { wallet_address: wallet || null } // ✅ optional
+  //     );
+  //     // router.push('/Components/System_Management_Components/dashboard');
+  //        router.push('/artist/dashboard');  // ← was /admin/dashboard
+  //   } catch (err) {
+  //     console.error(
+  //       'Step 2 error:',
+  //       err.response?.data || err.message
+  //     );
+  //   }
+  // };
+
   const submit = async () => {
-    if (!authToken) return;
-
-    try {
-      await backendApi.post(
-        'system_management/artist_onboarding_step_2/',
-        { wallet_address: wallet || null } // ✅ optional
-      );
-      router.push('/Components/System_Management_Components/dashboard');
-    } catch (err) {
-      console.error(
-        'Step 2 error:',
-        err.response?.data || err.message
-      );
+  try {
+    await backendApi.post(
+      'system_management/artist_onboarding_step_2/',
+      { wallet_address: wallet || null }
+    );
+    router.push('/artist/dashboard');
+  } catch (err) {
+    // Only show error for real validation failures
+    // not for "already onboarded"
+    const message = err.response?.data?.message;
+    if (message && message !== 'Artist already onboarded') {
+      console.error('Step 2 error:', message);
+      alert(message);
+    } else {
+      // Already onboarded or skip — just proceed
+      router.push('/artist/dashboard');
     }
-  };
-
+  }
+};
   return (
     <div className="max-w-md mx-auto mt-20 space-y-4">
       <h1 className="text-2xl font-bold">Connect your wallet</h1>
@@ -50,7 +71,7 @@ export default function StepTwoOnboarding() {
 
       {/* Optional skip */}
       <button
-        onClick={() => router.push('/Components/System_Management_Components/dashboard')}
+        onClick={() => router.push('/artist/dashboard')}
         className="w-full text-sm text-gray-500 underline"
       >
         Skip for now

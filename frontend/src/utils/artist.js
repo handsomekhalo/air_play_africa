@@ -10,6 +10,8 @@ export const getArtistProfile = async () => {
     '/system_management/get_artist_profile/',
     { withCredentials: true }
   );
+
+  console.log('getArtistProfile response:', res.data); // Debug log
   return res.data;
 };
 

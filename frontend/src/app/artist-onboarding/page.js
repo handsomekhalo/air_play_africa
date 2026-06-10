@@ -1,8 +1,8 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import StepOneOnboarding from '../CreateArtistComponent/Onboard_Component/onboarding_step_1';
-import StepTwoOnboarding from '../CreateArtistComponent/Onboard_Component/onboarding_step_2';
+import StepOneOnboarding from '../Components/Artists/onboarding/onboarding_step_1';
+import StepTwoOnboarding from '../Components/Artists/onboarding/onboarding_step_2';
 
 export default function ArtistOnboardingPage() {
   const searchParams = useSearchParams();

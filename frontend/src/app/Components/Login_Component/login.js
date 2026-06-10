@@ -2,8 +2,8 @@
 
 // import backendApi from '@/utils/backendApi';
 import { useState, useEffect } from 'react';
-import { useAuth } from '../../../AuthContext';
-import backendApi from '../../utils/backendApi';
+import { useAuth } from '../../../../AuthContext';
+import backendApi from '../../../utils/backendApi';
 
 // frontend\src\utils\backendApi.js
 
@@ -64,55 +64,7 @@ export default function LoginPage() {
       );
 
       console.log('Login response:', response.data);
-      
-      // if (response.data.status === "success" && response.data.token) {
-        
-        
-      //   console.log('Login successful!');
-      //   // const token = response.data.token;
-      //   // const user = response.data.user;
-      //   const token = response.data.token;
-      //   const user = response.data.user;
-        
-      //   // Store authentication data in context
-      //   authLogin(token, tokenToUse);
-        
-      //   // Store in localStorage with CORRECT KEYS matching what AuthContext expects
-      //   localStorage.setItem('authToken', token);
-      //   localStorage.setItem('csrfToken', tokenToUse);
-      //   localStorage.setItem('user', JSON.stringify(user));
-
-      //   // 🔥 ONBOARDING LOGIC
-      //   if (user.role === 'artist') {
-      //     if (
-      //       response.data.needs_onboarding === true ||
-      //       !user.has_artist_profile
-      //     ) {
-      //       router.push('/artist/onboarding');
-      //       return;
-      //     }
-
-      //     router.push('/artist/dashboard');
-      //     return;
-      //   }
-
-
-      //   console.log('Authentication tokens stored:', { authToken: token, csrfToken: tokenToUse });
-      //   console.log('Redirecting to dashboard...');
-        
-      //   // Correctly navigate to /dashboard using the router
-      //   // router.push('/Components/System_Management_Component/dashboard');
-        
-      //   setTimeout(() => {
-      //     router.push('/Components/System_Management_Components/dashboard');
-      //     // if (user.role === 'admin') {
-      //     //       router.push('/Components/System_Management_Components/dashboard');
-      //     //   } else if (user.role === 'artist') {
-      //     //       router.push('/artist/dashboard');
-      //     //   }
-
-      //   }, 100);
-      // } 
+ 
       if (response.data.status === "success" && response.data.token) {
   console.log('Login successful!');
 

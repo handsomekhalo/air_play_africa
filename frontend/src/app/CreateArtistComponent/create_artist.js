@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import backendApi from '../../utils/backendApi';
-import LoginPage from '../Login_Component/login';
+import LoginPage from '../Components/Login_Component/login';
 
 export const registerArtist = async (data) => {
   const response = await backendApi.post("/system_management/register_artist/", data);

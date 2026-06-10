@@ -13,6 +13,8 @@ class Artist(models.Model):
     onboarding_step = models.PositiveSmallIntegerField(default=1)
 
     created_at = models.DateTimeField(auto_now_add=True)
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
 
     def __str__(self):
         return self.user.email  # ✅ safer, since you removed username from your custom User
@@ -110,14 +112,24 @@ class Stream(models.Model):
 
 
 class Tip(models.Model):
-    track = models.ForeignKey(Track, on_delete=models.CASCADE, related_name='tips')
-    tipper = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
-    amount = models.DecimalField(max_digits=10, decimal_places=2)  # In USD or crypto equivalent
-    timestamp = models.DateTimeField(auto_now_add=True)
-    tx_hash = models.CharField(max_length=66, blank=True)  # Blockchain transaction hash for verification
+    STATUS_CHOICES = [
+        ('pending',   'Pending'),    # payment initiated
+        ('success',   'Success'),    # Paystack confirmed payment
+        ('failed',    'Failed'),     # payment failed
+        ('refunded',  'Refunded'),   # edge case
+    ]
+
+    track           = models.ForeignKey(Track, on_delete=models.CASCADE, related_name='tips')
+    tipper          = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    amount          = models.DecimalField(max_digits=10, decimal_places=2)  # in Rands
+    platform_fee    = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # 15%
+    artist_amount   = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # 85%
+    status          = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    paystack_ref    = models.CharField(max_length=100, unique=True)  # Paystack payment reference
+    timestamp       = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Tip of {self.amount} for {self.track.title}"
+        return f"Tip of R{self.amount} for {self.track.title}"
 
 
 class BlockchainLog(models.Model):

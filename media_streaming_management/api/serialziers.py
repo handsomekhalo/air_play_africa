@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from media_streaming_management.models import Artist, Stream, Tip, Track
+from media_streaming_management.models import Artist, ArtistEarnings, CreditAccount, Stream, Tip, Track
 from system_management.api.serializers import UserModelSerializer
 from system_management.models import Profile, User, UserType
 
@@ -345,3 +345,13 @@ class TipSerializer(serializers.ModelSerializer):
         model = Tip
         fields = '__all__'
 
+class CreditAccountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CreditAccount
+        fields = ['balance']
+
+
+class ArtistEarningsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ArtistEarnings
+        fields = ['balance_credits', 'total_earned', 'total_withdrawn']

@@ -22,7 +22,7 @@ from rest_framework.decorators import api_view, parser_classes
 
 import os
 import tempfile
-from media_streaming_management.api.serialziers import GetAllArtistTrackListSerializer, GetAllTracksDetailSerializer, GetSingleTrackListSerializer, TipSerializer, TrackSerializer, UploadTrackSerializer
+from media_streaming_management.api.serialziers import ArtistEarningsSerializer, CreditAccountSerializer, GetAllArtistTrackListSerializer, GetAllTracksDetailSerializer, GetSingleTrackListSerializer, TipSerializer, TrackSerializer, UploadTrackSerializer
 from system_management.models import UserType
 from system_management.permissions import IsAdminUserType
 from system_management.models import UserType
@@ -744,3 +744,35 @@ def verify_topup_webhook(request):
     print(f"Credits added: {topup.credits_added} to user {topup.user.email}")
 
     return Response({'status': 'success', 'message': 'Credits added.'}, status=200)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_credit_balance_api(request):
+    """Returns the logged-in user's credit balance."""
+    account, _ = CreditAccount.objects.get_or_create(user=request.user)
+    serializer = CreditAccountSerializer(account)
+    return Response({
+        'status': 'success',
+        'data': serializer.data
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_artist_earnings_api(request):
+    """Returns the logged-in artist's earnings."""
+    try:
+        artist = Artist.objects.get(user=request.user)
+    except Artist.DoesNotExist:
+        return Response({
+            'status': 'error',
+            'message': 'Artist profile not found.'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    earnings, _ = ArtistEarnings.objects.get_or_create(artist=artist)
+    serializer = ArtistEarningsSerializer(earnings)
+    return Response({
+        'status': 'success',
+        'data': serializer.data
+    }, status=status.HTTP_200_OK)

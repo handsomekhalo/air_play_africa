@@ -139,3 +139,24 @@ class ArtistEarnings(models.Model):
     balance_credits = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total_earned    = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total_withdrawn = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+
+class WithdrawalRequest(models.Model):
+    STATUS_CHOICES = [
+        ('pending',   'Pending'),
+        ('approved',  'Approved'),
+        ('paid',      'Paid'),
+        ('rejected',  'Rejected'),
+    ]
+    artist        = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='withdrawals')
+    amount        = models.DecimalField(max_digits=10, decimal_places=2)
+    status        = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    bank_name     = models.CharField(max_length=100, blank=True)
+    account_number = models.CharField(max_length=50, blank=True)
+    account_name  = models.CharField(max_length=100, blank=True)
+    requested_at  = models.DateTimeField(auto_now_add=True)
+    processed_at  = models.DateTimeField(null=True, blank=True)
+    admin_notes   = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.artist.user.email} — R{self.amount} — {self.status}"

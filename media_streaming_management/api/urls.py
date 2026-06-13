@@ -31,7 +31,8 @@ urlpatterns = [
     path('initiate_topup_api/', views.initiate_topup_api, name='initiate_topup_api'),
     path('send_tip_api/', views.send_tip_api, name='send_tip_api'),
     path('verify_topup_webhook/', views.verify_topup_webhook, name='verify_topup_webhook'),
-    # path('get_artist_earnings_api/', views.get_artist_earnings_api, name='get_artist_earnings_api'),
+    path('get_artist_earnings_api/', views.get_artist_earnings_api, name='get_artist_earnings_api'),
+    path('get_credit_balance_api/', views.get_credit_balance_api, name='get_credit_balance_api'),
     
     ]
     

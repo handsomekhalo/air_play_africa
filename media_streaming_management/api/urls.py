@@ -6,6 +6,12 @@ from django.urls import re_path
 from system_management.api.api_helpers import send_email_api
 
 
+# 1. initiate_topup        ← listener buys credits via Paystack
+# 2. verify_topup_webhook  ← Paystack calls this to confirm payment
+#                             credits land in CreditAccount after this
+# 3. send_tip              ← instant, no Paystack, just moves credits
+# 4. get_artist_earnings   ← artist sees their balance
+# 5. request_withdrawal    ← artist cashes out (later)
 
 urlpatterns = [
 
@@ -21,6 +27,11 @@ urlpatterns = [
     path('get_listener_play_token/<int:track_id>/',views.get_listener_play_token_api,name='get_listener_play_token_api'),
     path('get_all_tracks_admin_api/', views.get_all_tracks_admin_api, name='get_all_tracks_admin_api'),
     path('moderate_track_api/<int:track_id>/', views.moderate_track_api, name='moderate_track_api'),
-    re_path(r'^play_with_token_api/(?P<token>.+)/$',views.play_with_token_api,name='play_with_token_api')
-
-]
+    re_path(r'^play_with_token_api/(?P<token>.+)/$',views.play_with_token_api,name='play_with_token_api'),
+    path('initiate_topup_api/', views.initiate_topup_api, name='initiate_topup_api'),
+    path('send_tip_api/', views.send_tip_api, name='send_tip_api'),
+    path('verify_topup_webhook/', views.verify_topup_webhook, name='verify_topup_webhook'),
+    # path('get_artist_earnings_api/', views.get_artist_earnings_api, name='get_artist_earnings_api'),
+    
+    ]
+    

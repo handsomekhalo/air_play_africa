@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from media_streaming_management.models import Artist, BlockchainLog, Stream, Tip, Track
+from media_streaming_management.models import Artist, Stream, Tip, Track
 from system_management.api.serializers import UserModelSerializer
 from system_management.models import Profile, User, UserType
 
@@ -345,7 +345,3 @@ class TipSerializer(serializers.ModelSerializer):
         model = Tip
         fields = '__all__'
 
-class BlockchainLogSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = BlockchainLog
-        fields = '__all__'

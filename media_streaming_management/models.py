@@ -1,7 +1,9 @@
 from django.db import models
 from django.conf import settings  # ✅ use this instead of django.contrib.auth.models.User
 from django.utils import timezone
-import uuid  # For unique listener IDs
+import uuid
+
+from system_management.models import User  # For unique listener IDs
 
 
 class Artist(models.Model):
@@ -111,34 +113,29 @@ class Stream(models.Model):
         return f"Stream of {self.track.title} at {self.timestamp}"
 
 
+class CreditAccount(models.Model):
+    user     = models.OneToOneField(User, on_delete=models.CASCADE)
+    balance  = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    # balance in credits (1 credit = R1)
+
+class CreditTopUp(models.Model):
+    user          = models.ForeignKey(User, on_delete=models.CASCADE)
+    amount_rands  = models.DecimalField(max_digits=10, decimal_places=2)
+    credits_added = models.DecimalField(max_digits=10, decimal_places=2)
+    paystack_ref  = models.CharField(max_length=100, unique=True)
+    status        = models.CharField(max_length=20, default='pending')
+    timestamp     = models.DateTimeField(auto_now_add=True)
+
 class Tip(models.Model):
-    STATUS_CHOICES = [
-        ('pending',   'Pending'),    # payment initiated
-        ('success',   'Success'),    # Paystack confirmed payment
-        ('failed',    'Failed'),     # payment failed
-        ('refunded',  'Refunded'),   # edge case
-    ]
+    track          = models.ForeignKey(Track, on_delete=models.CASCADE, related_name='tips')
+    tipper         = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    credits_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    platform_fee   = models.DecimalField(max_digits=10, decimal_places=2)
+    artist_amount  = models.DecimalField(max_digits=10, decimal_places=2)
+    timestamp      = models.DateTimeField(auto_now_add=True)
 
-    track           = models.ForeignKey(Track, on_delete=models.CASCADE, related_name='tips')
-    tipper          = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
-    amount          = models.DecimalField(max_digits=10, decimal_places=2)  # in Rands
-    platform_fee    = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # 15%
-    artist_amount   = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # 85%
-    status          = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    paystack_ref    = models.CharField(max_length=100, unique=True)  # Paystack payment reference
-    timestamp       = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Tip of R{self.amount} for {self.track.title}"
-
-
-class BlockchainLog(models.Model):
-    related_model = models.CharField(max_length=50)  # e.g., 'Tip' or 'Payout'
-    related_id = models.IntegerField()
-    tx_hash = models.CharField(max_length=66)
-    chain = models.CharField(max_length=20, default='ethereum')  # Or 'solana'
-    status = models.CharField(max_length=20, default='pending')  # pending/confirmed/failed
-    timestamp = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Log {self.tx_hash} for {self.related_model} {self.related_id}"
+class ArtistEarnings(models.Model):
+    artist          = models.OneToOneField(Artist, on_delete=models.CASCADE)
+    balance_credits = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_earned    = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_withdrawn = models.DecimalField(max_digits=10, decimal_places=2, default=0)

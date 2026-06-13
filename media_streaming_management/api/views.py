@@ -22,15 +22,15 @@ from rest_framework.decorators import api_view, parser_classes
 
 import os
 import tempfile
-from media_streaming_management.api.serialziers import BlockchainLogSerializer, GetAllArtistTrackListSerializer, GetAllTracksDetailSerializer, GetSingleTrackListSerializer, TipSerializer, TrackSerializer, UploadTrackSerializer
+from media_streaming_management.api.serialziers import GetAllArtistTrackListSerializer, GetAllTracksDetailSerializer, GetSingleTrackListSerializer, TipSerializer, TrackSerializer, UploadTrackSerializer
 from system_management.models import UserType
 from system_management.permissions import IsAdminUserType
 from system_management.models import UserType
 from system_management.models import UserType
 User = get_user_model()
 from django.db.models import Avg, Count
-from media_streaming_management.api.serialziers import AdminCreateSerializer, ArtistCreateSerializer, ArtistSerializer, BlockchainLogSerializer, GetAlltUserModelSerializer, GetArtistProfileSerializer, ListenerCreateSerializer, StreamSerializer, TipSerializer, TrackSerializer, UpdateArtistProfileSerializer, UserModelSerializer, UserTypeModelSerializer,GetArtistSerializer
-from media_streaming_management.models import Artist, BlockchainLog, Stream, Track
+from media_streaming_management.api.serialziers import AdminCreateSerializer, ArtistCreateSerializer, ArtistSerializer, GetAlltUserModelSerializer, GetArtistProfileSerializer, ListenerCreateSerializer, StreamSerializer, TipSerializer, TrackSerializer, UpdateArtistProfileSerializer, UserModelSerializer, UserTypeModelSerializer,GetArtistSerializer
+from media_streaming_management.models import Artist, ArtistEarnings, CreditAccount, CreditTopUp,  Stream, Tip, Track
 from web3 import Web3  # For blockchain placeholder
 import os
 from rest_framework.decorators import api_view, permission_classes
@@ -43,6 +43,11 @@ from django.core import signing
 from django.http import StreamingHttpResponse, HttpResponseForbidden
 import time
 import requests
+from django.conf import settings
+from django.db import transaction
+from decimal import Decimal
+from django.core.cache import cache
+
 
 # Blockchain setup (placeholder - load from env in production)
 WEB3_PROVIDER = os.getenv('WEB3_PROVIDER', 'https://mainnet.infura.io/v3/YOUR_INFURA_KEY')  # Replace with your key
@@ -253,6 +258,15 @@ def my_tracks_api(request):
 @permission_classes([AllowAny])
 def record_stream_api(request):
     """Record a stream (with anti-fraud check)."""
+
+    ip = request.META.get('REMOTE_ADDR')
+    cache_key = f'stream_rate_{ip}'
+
+    request_count = cache.get(cache_key, 0)
+    if request_count > 30:  # max 30 stream-starts per minute per IP
+        return Response({'status': 'error', 'message': 'Rate limit exceeded.'}, status=429)
+    
+    cache.set(cache_key, request_count + 1, timeout=60)
     data = request.data.copy()
     
     # Add IP address automatically
@@ -429,39 +443,6 @@ def update_stream_api(request, session_id):
         }, status=status.HTTP_404_NOT_FOUND)
     
 
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def send_tip_api(request):
-    """Send a tip to a track (with blockchain log)."""
-    serializer = TipSerializer(data=request.data)
-    if serializer.is_valid():
-        tip = serializer.save(tipper=request.user)
-        # Blockchain placeholder: Simulate tx (replace with real contract call)
-        if w3.is_connected():
-            # Mock tx - in real: call smart contract to transfer funds
-            tx_hash = '0xMockHash'  # w3.eth.send_transaction({...})
-            BlockchainLog.objects.create(
-                related_model='Tip', related_id=tip.id, tx_hash=tx_hash, status='confirmed'
-            )
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def artist_dashboard(request):
-    """Get earnings/transparency dashboard for artist."""
-    try:
-        artist = request.user.artist
-    except Artist.DoesNotExist:
-        return Response({'error': 'Not an artist'}, status=status.HTTP_403_FORBIDDEN)
-    tracks = TrackSerializer(artist.tracks.all(), many=True).data
-    total_earnings = sum(tip.amount for tip in Tip.objects.filter(track__artist=artist))
-    logs = BlockchainLogSerializer(BlockchainLog.objects.filter(related_id__in=[t.id for t in artist.tracks.all()]), many=True).data
-    return Response({
-        'tracks': tracks,
-        'total_earnings': total_earnings,
-        'blockchain_logs': logs  # For transparency
-    })
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -531,3 +512,235 @@ def moderate_track_api(request, track_id):
         'track_id': track.id,
         'new_status': track.status,
     }, status=200)
+
+
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def initiate_topup_api(request):
+    """
+    Listener wants to buy credits.
+    Body: { "amount_rands": 50 }
+    Returns Paystack authorization URL to redirect to.
+    """
+    amount_rands = request.data.get('amount_rands')
+    print('amount_rands', amount_rands)
+    if not amount_rands or float(amount_rands) <= 0:
+        return Response({
+            'status': 'error',
+            'message': 'Please provide a valid amount.'
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    amount_rands = float(amount_rands)
+    credits_to_add = amount_rands  # 1 Rand = 1 credit, simple for now
+    print('credits_to_add', credits_to_add)
+
+    # Paystack expects amount in kobo/cents (smallest currency unit)
+    amount_in_cents = int(amount_rands * 100)
+
+    headers = {
+        'Authorization': f'Bearer {settings.PAYSTACK_SECRET_KEY}',
+        'Content-Type': 'application/json',
+    }
+
+    print('headers', headers)
+    payload = {
+        'email': request.user.email,
+        'amount': amount_in_cents,
+        'currency': 'ZAR',
+        'callback_url': f'{settings.FRONTEND_URL}/listener/wallet/callback',
+        'metadata': {
+            'user_id': request.user.id,
+            'credits_to_add': str(credits_to_add),
+            'purpose': 'credit_topup',
+        }
+    }
+
+    print('payload', payload)
+
+
+    try:
+        response = requests.post(
+            f'{settings.PAYSTACK_BASE_URL}/transaction/initialize',
+            json=payload,
+            headers=headers,
+            timeout=30
+        )
+
+        print('paystack response status', response)
+        print(response.status_code)
+        print(response.text)
+
+        data = response.json()
+
+        print('paystack response', data)
+
+        if not data.get('status'):
+            return Response({
+                'status': 'error',
+                'message': data.get('message', 'Failed to initialize payment.')
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        print("status:", response.status_code)
+        print("body:", response.text)
+
+        # Create pending top-up record
+        CreditTopUp.objects.create(
+            user=request.user,
+            amount_rands=amount_rands,
+            credits_added=credits_to_add,
+            paystack_ref=data['data']['reference'],
+            status='pending'
+        )
+
+        return Response({
+            'status': 'success',
+            'authorization_url': data['data']['authorization_url'],
+            'reference': data['data']['reference'],
+        }, status=status.HTTP_200_OK)
+
+    except requests.exceptions.RequestException as e:
+        return Response({
+            'status': 'error',
+            'message': f'Payment service error: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def send_tip_api(request):
+    """
+    Listener tips a track using credits. Instant, no Paystack.
+    Body: { "track_id": 15, "credits_amount": 10 }
+    """
+    track_id = request.data.get('track_id')
+    credits_amount = request.data.get('credits_amount')
+
+    if not track_id or not credits_amount:
+        return Response({'status': 'error', 'message': 'track_id and credits_amount required.'}, status=400)
+
+    credits_amount = Decimal(str(credits_amount))
+
+    if credits_amount < Decimal('10'):  # minimum tip
+        return Response({'status': 'error', 'message': 'Minimum tip is 10 credits.'}, status=400)
+
+    try:
+        track = Track.objects.get(id=track_id, status='ready')
+    except Track.DoesNotExist:
+        return Response({'status': 'error', 'message': 'Track not found.'}, status=404)
+
+    platform_fee  = (credits_amount * Decimal('0.15')).quantize(Decimal('0.01'))
+    artist_amount = credits_amount - platform_fee
+
+    try:
+        with transaction.atomic():
+            # Lock the tipper's account row to prevent race conditions
+            tipper_account = CreditAccount.objects.select_for_update().get(user=request.user)
+
+            if tipper_account.balance < credits_amount:
+                return Response({'status': 'error', 'message': 'Insufficient credits.'}, status=400)
+
+            # Deduct from tipper
+            tipper_account.balance -= credits_amount
+            tipper_account.save(update_fields=['balance'])
+
+            # Credit the artist
+            earnings, _ = ArtistEarnings.objects.select_for_update().get_or_create(artist=track.artist)
+            earnings.balance_credits += artist_amount
+            earnings.total_earned    += artist_amount
+            earnings.save(update_fields=['balance_credits', 'total_earned'])
+
+            # Record the tip
+            tip = Tip.objects.create(
+                track=track,
+                tipper=request.user,
+                credits_amount=credits_amount,
+                platform_fee=platform_fee,
+                artist_amount=artist_amount,
+            )
+
+        return Response({
+            'status': 'success',
+            'message': f'Tipped {credits_amount} credits!',
+            'new_balance': str(tipper_account.balance),
+            'tip_id': tip.id,
+        }, status=201)
+
+    except CreditAccount.DoesNotExist:
+        return Response({'status': 'error', 'message': 'Credit account not found.'}, status=404)
+
+
+
+# Now register this webhook URL with Paystack:
+
+# Go to Paystack Dashboard → Settings → API Keys & Webhooks
+# Set Webhook URL to: https://your-domain.com/media_streaming_management_api/verify_topup_webhook/
+# For local testing, you'll need a tunnel — use ngrok: ngrok http 8000 gives you a public URL pointing to your local server
+
+# No proxy needed for this one — Paystack calls it directly, not through your frontend, so the standard proxy pattern doesn't apply here.
+
+@api_view(['POST'])
+@permission_classes([AllowAny])  # Paystack calls this, not a logged-in user
+def verify_topup_webhook(request):
+    """
+    Paystack calls this after a payment completes.
+    Must be idempotent — Paystack may retry this call.
+    """
+    print("RAW BODY:", request.body)
+    print("PARSED DATA:", request.data)
+    
+    event = request.data
+    event_type = event.get('event')
+    print("EVENT TYPE:", event_type)
+
+    print('Webhook received:', request.data)
+    event = request.data
+    event_type = event.get('event')
+
+    if event_type != 'charge.success':
+        # Ignore other event types for now
+        return Response({'status': 'ignored'}, status=200)
+
+    reference = event.get('data', {}).get('reference')
+
+    if not reference:
+        return Response({'status': 'error', 'message': 'No reference provided.'}, status=400)
+
+    try:
+        topup = CreditTopUp.objects.get(paystack_ref=reference)
+    except CreditTopUp.DoesNotExist:
+        return Response({'status': 'error', 'message': 'Top-up record not found.'}, status=404)
+
+    # Idempotency guard — if already processed, don't double-credit
+    if topup.status == 'success':
+        return Response({'status': 'success', 'message': 'Already processed.'}, status=200)
+
+    # Verify with Paystack directly (don't trust webhook payload alone)
+    headers = {'Authorization': f'Bearer {settings.PAYSTACK_SECRET_KEY}'}
+    verify_url = f'{settings.PAYSTACK_BASE_URL}/transaction/verify/{reference}'
+
+    try:
+        verify_response = requests.get(verify_url, headers=headers, timeout=30)
+        verify_data = verify_response.json()
+    except requests.exceptions.RequestException as e:
+        return Response({'status': 'error', 'message': f'Verification failed: {str(e)}'}, status=500)
+
+    if not verify_data.get('status') or verify_data['data']['status'] != 'success':
+        topup.status = 'failed'
+        topup.save(update_fields=['status'])
+        return Response({'status': 'error', 'message': 'Payment not verified as successful.'}, status=400)
+
+    # Payment confirmed — credit the account atomically
+    with transaction.atomic():
+        topup.status = 'success'
+        topup.save(update_fields=['status'])
+
+        account, _ = CreditAccount.objects.select_for_update().get_or_create(user=topup.user)
+        account.balance += topup.credits_added
+        account.save(update_fields=['balance'])
+    
+    print(f"Credits added: {topup.credits_added} to user {topup.user.email}")
+
+    return Response({'status': 'success', 'message': 'Credits added.'}, status=200)

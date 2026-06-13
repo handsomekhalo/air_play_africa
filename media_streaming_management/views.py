@@ -326,3 +326,55 @@ def moderate_track(request, track_id):
         return JsonResponse(response.json(), status=response.status_code)
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    
+
+@csrf_exempt
+def initiate_topup(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+    try:
+        auth_header = request.headers.get('Authorization', '')
+        token = None
+        if auth_header.startswith('Token '):
+            token = auth_header.split('Token ')[-1]
+        elif auth_header.startswith('Bearer '):
+            token = auth_header.split('Bearer ')[-1]
+        if not token:
+            return JsonResponse({'status': 'error', 'message': 'Authorization token required.'}, status=401)
+
+        body = json.loads(request.body or '{}')
+        url = f"{host_url(request)}{reverse_lazy('initiate_topup_api')}"
+        response = requests.post(url, json=body, headers={
+            'Authorization': f'Token {token}',
+            'Content-Type': 'application/json',
+        }, timeout=30)
+        return JsonResponse(response.json(), status=response.status_code)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    
+
+
+@csrf_exempt
+def send_tip(request):
+    """Proxy — listener tips a track using credits."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+    try:
+        auth_header = request.headers.get('Authorization', '')
+        token = None
+        if auth_header.startswith('Token '):
+            token = auth_header.split('Token ')[-1]
+        elif auth_header.startswith('Bearer '):
+            token = auth_header.split('Bearer ')[-1]
+        if not token:
+            return JsonResponse({'status': 'error', 'message': 'Authorization token required.'}, status=401)
+
+        body = json.loads(request.body or '{}')
+        url = f"{host_url(request)}{reverse_lazy('send_tip_api')}"
+        response = requests.post(url, json=body, headers={
+            'Authorization': f'Token {token}',
+            'Content-Type': 'application/json',
+        }, timeout=30)
+        return JsonResponse(response.json(), status=response.status_code)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

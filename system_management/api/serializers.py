@@ -1,4 +1,4 @@
-from media_streaming_management.models import Artist, BlockchainLog, Stream, Tip, Track
+from media_streaming_management.models import Artist,Stream, Tip, Track
 from system_management import constants
 from system_management.models import  Profile, User
 

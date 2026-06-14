@@ -420,3 +420,112 @@ def get_artist_earnings(request):
         return JsonResponse(response.json(), status=response.status_code)
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+# ═══════════════════════════════════════════════════════════════
+# ADD ALL FOUR to system_management/views.py
+# Same pattern as send_tip / get_credit_balance — token extraction,
+# forward to media_streaming_management_api, return response.
+# ═══════════════════════════════════════════════════════════════
+
+@csrf_exempt
+def request_withdrawal(request):
+    """Proxy — artist requests a withdrawal."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+    try:
+        auth_header = request.headers.get('Authorization', '')
+        token = None
+        if auth_header.startswith('Token '):
+            token = auth_header.split('Token ')[-1]
+        elif auth_header.startswith('Bearer '):
+            token = auth_header.split('Bearer ')[-1]
+        if not token:
+            return JsonResponse({'status': 'error', 'message': 'Authorization token required.'}, status=401)
+
+        body = json.loads(request.body or '{}')
+        url = f"{host_url(request)}{reverse_lazy('request_withdrawal_api')}"
+        response = requests.post(url, json=body, headers={
+            'Authorization': f'Token {token}',
+            'Content-Type': 'application/json',
+        }, timeout=30)
+        return JsonResponse(response.json(), status=response.status_code)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@csrf_exempt
+def get_my_withdrawals(request):
+    """Proxy — artist views their withdrawal history."""
+    if request.method != 'GET':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+    try:
+        auth_header = request.headers.get('Authorization', '')
+        token = None
+        if auth_header.startswith('Token '):
+            token = auth_header.split('Token ')[-1]
+        elif auth_header.startswith('Bearer '):
+            token = auth_header.split('Bearer ')[-1]
+        if not token:
+            return JsonResponse({'status': 'error', 'message': 'Authorization token required.'}, status=401)
+
+        url = f"{host_url(request)}{reverse_lazy('get_my_withdrawals_api')}"
+        response = requests.get(url, headers={'Authorization': f'Token {token}'}, timeout=30)
+        return JsonResponse(response.json(), status=response.status_code)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@csrf_exempt
+def admin_list_withdrawals(request):
+    """Proxy — admin views all withdrawal requests, optional ?status= filter."""
+    if request.method != 'GET':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+    try:
+        auth_header = request.headers.get('Authorization', '')
+        token = None
+        if auth_header.startswith('Token '):
+            token = auth_header.split('Token ')[-1]
+        elif auth_header.startswith('Bearer '):
+            token = auth_header.split('Bearer ')[-1]
+        if not token:
+            return JsonResponse({'status': 'error', 'message': 'Authorization token required.'}, status=401)
+
+        url = f"{host_url(request)}{reverse_lazy('admin_list_withdrawals_api')}"
+
+        # Forward query params (e.g. ?status=pending)
+        query_params = request.GET.urlencode()
+        if query_params:
+            url = f"{url}?{query_params}"
+
+        response = requests.get(url, headers={'Authorization': f'Token {token}'}, timeout=30)
+        return JsonResponse(response.json(), status=response.status_code)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@csrf_exempt
+def admin_process_withdrawal(request, withdrawal_id):
+    """Proxy — admin approves/rejects/marks paid a withdrawal."""
+    if request.method != 'PATCH':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+    try:
+        auth_header = request.headers.get('Authorization', '')
+        token = None
+        if auth_header.startswith('Token '):
+            token = auth_header.split('Token ')[-1]
+        elif auth_header.startswith('Bearer '):
+            token = auth_header.split('Bearer ')[-1]
+        if not token:
+            return JsonResponse({'status': 'error', 'message': 'Authorization token required.'}, status=401)
+
+        body = json.loads(request.body or '{}')
+        url = f"{host_url(request)}{reverse_lazy('admin_process_withdrawal_api', kwargs={'withdrawal_id': withdrawal_id})}"
+        response = requests.patch(url, json=body, headers={
+            'Authorization': f'Token {token}',
+            'Content-Type': 'application/json',
+        }, timeout=30)
+        return JsonResponse(response.json(), status=response.status_code)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+

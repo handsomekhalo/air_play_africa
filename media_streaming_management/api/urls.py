@@ -33,6 +33,8 @@ urlpatterns = [
     path('verify_topup_webhook/', views.verify_topup_webhook, name='verify_topup_webhook'),
     path('get_artist_earnings_api/', views.get_artist_earnings_api, name='get_artist_earnings_api'),
     path('get_credit_balance_api/', views.get_credit_balance_api, name='get_credit_balance_api'),
-    
+    path('request_withdrawal_api/', views.request_withdrawal_api, name='request_withdrawal_api'),
+    path('get_my_withdrawals_api/', views.get_my_withdrawals_api, name='get_my_withdrawals_api'),
+    path('admin_process_withdrawal_api/<int:withdrawal_id>/', views.admin_process_withdrawal_api, name='admin_process_withdrawal_api'),
     ]
     

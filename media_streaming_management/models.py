@@ -119,13 +119,28 @@ class CreditAccount(models.Model):
     # balance in credits (1 credit = R1)
 
 class CreditTopUp(models.Model):
-    user          = models.ForeignKey(User, on_delete=models.CASCADE)
-    amount_rands  = models.DecimalField(max_digits=10, decimal_places=2)
-    credits_added = models.DecimalField(max_digits=10, decimal_places=2)
-    paystack_ref  = models.CharField(max_length=100, unique=True)
-    status        = models.CharField(max_length=20, default='pending')
-    timestamp     = models.DateTimeField(auto_now_add=True)
+    STATUS_CHOICES = [
+        ('pending',  'Pending'),
+        ('success',  'Success'),
+        ('failed',   'Failed'),
+    ]
+    
+    PAYMENT_METHOD_CHOICES = [
+        ('paystack', 'Paystack'),
+        ('voucher',  'Voucher'),
+        ('manual',   'Manual'),   # admin credit adjustments
+    ]
 
+    user           = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='topups')
+    amount_rands   = models.DecimalField(max_digits=10, decimal_places=2)
+    credits_added  = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='paystack')
+    reference      = models.CharField(max_length=100, unique=True)  # paystack_ref OR voucher code
+    status         = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    timestamp      = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.email} — R{self.amount_rands} via {self.payment_method} — {self.status}"
 class Tip(models.Model):
     track          = models.ForeignKey(Track, on_delete=models.CASCADE, related_name='tips')
     tipper         = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)

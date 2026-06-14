@@ -22,7 +22,7 @@ from rest_framework.decorators import api_view, parser_classes
 
 import os
 import tempfile
-from media_streaming_management.api.serialziers import ArtistEarningsSerializer, CreditAccountSerializer, GetAllArtistTrackListSerializer, GetAllTracksDetailSerializer, GetSingleTrackListSerializer, TipSerializer, TrackSerializer, UploadTrackSerializer
+from media_streaming_management.api.serialziers import ArtistEarningsSerializer, CreditAccountSerializer, GetAllArtistTrackListSerializer, GetAllTracksDetailSerializer, GetSingleTrackListSerializer, TipSerializer, TrackSerializer, UploadTrackSerializer, WithdrawalRequestCreateSerializer, WithdrawalRequestSerializer
 from system_management.models import UserType
 from system_management.permissions import IsAdminUserType
 from system_management.models import UserType
@@ -30,7 +30,7 @@ from system_management.models import UserType
 User = get_user_model()
 from django.db.models import Avg, Count
 from media_streaming_management.api.serialziers import AdminCreateSerializer, ArtistCreateSerializer, ArtistSerializer, GetAlltUserModelSerializer, GetArtistProfileSerializer, ListenerCreateSerializer, StreamSerializer, TipSerializer, TrackSerializer, UpdateArtistProfileSerializer, UserModelSerializer, UserTypeModelSerializer,GetArtistSerializer
-from media_streaming_management.models import Artist, ArtistEarnings, CreditAccount, CreditTopUp,  Stream, Tip, Track
+from media_streaming_management.models import Artist, ArtistEarnings, CreditAccount, CreditTopUp,  Stream, Tip, Track, WithdrawalRequest
 from web3 import Web3  # For blockchain placeholder
 import os
 from rest_framework.decorators import api_view, permission_classes
@@ -38,7 +38,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.core import signing
 from django.utils.timezone import now
-from datetime import timedelta
+from datetime import timedelta, timezone
 from django.core import signing
 from django.http import StreamingHttpResponse, HttpResponseForbidden
 import time
@@ -47,6 +47,7 @@ from django.conf import settings
 from django.db import transaction
 from decimal import Decimal
 from django.core.cache import cache
+from system_management import constants
 
 
 # Blockchain setup (placeholder - load from env in production)
@@ -590,7 +591,8 @@ def initiate_topup_api(request):
             user=request.user,
             amount_rands=amount_rands,
             credits_added=credits_to_add,
-            paystack_ref=data['data']['reference'],
+            # paystack_ref=data['data']['reference'],
+            payment_method='paystack',                # ← new field
             status='pending'
         )
 
@@ -623,8 +625,8 @@ def send_tip_api(request):
 
     credits_amount = Decimal(str(credits_amount))
 
-    if credits_amount < Decimal('10'):  # minimum tip
-        return Response({'status': 'error', 'message': 'Minimum tip is 10 credits.'}, status=400)
+    if credits_amount < constants.MINIMUM_TIP_AMOUNT:  # minimum tip
+        return Response({'status': 'error', 'message': f'Minimum tip is {constants.MINIMUM_TIP_AMOUNT} credits.'}, status=400)
 
     try:
         track = Track.objects.get(id=track_id, status='ready')
@@ -709,7 +711,8 @@ def verify_topup_webhook(request):
         return Response({'status': 'error', 'message': 'No reference provided.'}, status=400)
 
     try:
-        topup = CreditTopUp.objects.get(paystack_ref=reference)
+        # topup = CreditTopUp.objects.get(paystack_ref=reference)
+        topup = CreditTopUp.objects.get(reference=reference)
     except CreditTopUp.DoesNotExist:
         return Response({'status': 'error', 'message': 'Top-up record not found.'}, status=404)
 
@@ -776,3 +779,134 @@ def get_artist_earnings_api(request):
         'status': 'success',
         'data': serializer.data
     }, status=status.HTTP_200_OK)
+
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def request_withdrawal_api(request):
+    """Artist requests a withdrawal of their earnings."""
+    try:
+        artist = Artist.objects.get(user=request.user)
+    except Artist.DoesNotExist:
+        return Response({'status': 'error', 'message': 'Artist profile not found.'}, status=404)
+
+    serializer = WithdrawalRequestCreateSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response({'status': 'error', 'errors': serializer.errors}, status=400)
+
+    amount = serializer.validated_data['amount']
+
+    if amount < Decimal(str(constants.MINIMUM_WITHDRAWAL_AMOUNT)):
+        return Response({
+            'status': 'error',
+            'message': f'Minimum withdrawal is R{constants.MINIMUM_WITHDRAWAL_AMOUNT}.'
+        }, status=400)
+
+    try:
+        with transaction.atomic():
+            earnings = ArtistEarnings.objects.select_for_update().get(artist=artist)
+
+            if earnings.balance_credits < amount:
+                return Response({
+                    'status': 'error',
+                    'message': 'Insufficient balance.'
+                }, status=400)
+
+            # Lock the funds — deduct immediately
+            earnings.balance_credits -= amount
+            earnings.save(update_fields=['balance_credits'])
+
+            withdrawal = WithdrawalRequest.objects.create(
+                artist=artist,
+                amount=amount,
+                bank_name=serializer.validated_data.get('bank_name', ''),
+                account_number=serializer.validated_data.get('account_number', ''),
+                account_name=serializer.validated_data.get('account_name', ''),
+                status='pending',
+            )
+
+        return Response({
+            'status': 'success',
+            'message': 'Withdrawal request submitted.',
+            'data': WithdrawalRequestSerializer(withdrawal).data,
+        }, status=201)
+
+    except ArtistEarnings.DoesNotExist:
+        return Response({'status': 'error', 'message': 'No earnings found.'}, status=404)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_my_withdrawals_api(request):
+    try:
+        artist = Artist.objects.get(user=request.user)
+    except Artist.DoesNotExist:
+        return Response({'status': 'error', 'message': 'Artist profile not found.'}, status=404)
+
+    withdrawals = WithdrawalRequest.objects.filter(artist=artist).order_by('-requested_at')
+    serializer = WithdrawalRequestSerializer(withdrawals, many=True)
+    return Response({'status': 'success', 'data': serializer.data}, status=200)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def admin_list_withdrawals_api(request):
+    if request.user.user_type.name != 'Admin':
+        return Response({'status': 'error', 'message': 'Unauthorized'}, status=403)
+
+    status_filter = request.GET.get('status')  # optional ?status=pending
+    withdrawals = WithdrawalRequest.objects.all().order_by('-requested_at')
+
+    if status_filter:
+        withdrawals = withdrawals.filter(status=status_filter)
+
+    serializer = WithdrawalRequestSerializer(withdrawals, many=True)
+    return Response({'status': 'success', 'data': serializer.data}, status=200)
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def admin_process_withdrawal_api(request, withdrawal_id):
+    if request.user.user_type.name != 'Admin':
+        return Response({'status': 'error', 'message': 'Unauthorized'}, status=403)
+
+    action = request.data.get('action')  # 'approve', 'reject', 'mark_paid'
+    notes  = request.data.get('admin_notes', '')
+
+    try:
+        withdrawal = WithdrawalRequest.objects.get(id=withdrawal_id)
+    except WithdrawalRequest.DoesNotExist:
+        return Response({'status': 'error', 'message': 'Withdrawal not found.'}, status=404)
+
+    if action == 'approve':
+        withdrawal.status = 'approved'
+
+    elif action == 'reject':
+        # Refund the artist's balance since funds were locked at request time
+        with transaction.atomic():
+            earnings = ArtistEarnings.objects.select_for_update().get(artist=withdrawal.artist)
+            earnings.balance_credits += withdrawal.amount
+            earnings.save(update_fields=['balance_credits'])
+            withdrawal.status = 'rejected'
+
+    elif action == 'mark_paid':
+        if withdrawal.status != 'approved':
+            return Response({'status': 'error', 'message': 'Withdrawal must be approved first.'}, status=400)
+        withdrawal.status = 'paid'
+        withdrawal.processed_at = timezone.now()
+        # Update lifetime totals
+        earnings = ArtistEarnings.objects.get(artist=withdrawal.artist)
+        earnings.total_withdrawn += withdrawal.amount
+        earnings.save(update_fields=['total_withdrawn'])
+
+    else:
+        return Response({'status': 'error', 'message': 'Invalid action.'}, status=400)
+
+    withdrawal.admin_notes = notes
+    withdrawal.save()
+
+    return Response({
+        'status': 'success',
+        'message': f'Withdrawal {action}d.',
+        'data': WithdrawalRequestSerializer(withdrawal).data,
+    }, status=200)

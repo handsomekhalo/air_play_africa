@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from media_streaming_management.models import Artist, ArtistEarnings, CreditAccount, Stream, Tip, Track
+from media_streaming_management.models import Artist, ArtistEarnings, CreditAccount, Stream, Tip, Track, WithdrawalRequest
 from system_management.api.serializers import UserModelSerializer
 from system_management.models import Profile, User, UserType
 
@@ -355,3 +355,25 @@ class ArtistEarningsSerializer(serializers.ModelSerializer):
     class Meta:
         model = ArtistEarnings
         fields = ['balance_credits', 'total_earned', 'total_withdrawn']
+
+
+class WithdrawalRequestSerializer(serializers.ModelSerializer):
+    artist_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = WithdrawalRequest
+        fields = [
+            'id', 'amount', 'status', 'bank_name', 'account_number',
+            'account_name', 'requested_at', 'processed_at', 'admin_notes',
+            'artist_name',
+        ]
+        read_only_fields = ['id', 'status', 'requested_at', 'processed_at']
+
+    def get_artist_name(self, obj):
+        return f"{obj.artist.user.first_name} {obj.artist.user.last_name}"
+
+
+class WithdrawalRequestCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WithdrawalRequest
+        fields = ['amount', 'bank_name', 'account_number', 'account_name']

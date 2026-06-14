@@ -16,5 +16,10 @@ urlpatterns = [
     path('moderate_track/<int:track_id>/', views.moderate_track, name='moderate_track'),
     path('initiate_topup/', views.initiate_topup, name='initiate_topup'),
     path('send_tip/', views.send_tip, name='send_tip'),
+    path('request_withdrawal/', views.request_withdrawal, name='request_withdrawal'),
+    path('get_my_withdrawals/', views.get_my_withdrawals, name='get_my_withdrawals'),
+    path('admin_list_withdrawals/', views.admin_list_withdrawals, name='admin_list_withdrawals'),
+    path('admin_process_withdrawal/<int:withdrawal_id>/', views.admin_process_withdrawal, name='admin_process_withdrawal'),
+
 
 ]

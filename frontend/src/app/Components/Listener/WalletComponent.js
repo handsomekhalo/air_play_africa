@@ -5,6 +5,7 @@ import { useAuthGuard } from '@/utils/useAuthGuard';
 // import { getCreditBalance, initiateTopup } from '@/utils/wallet_helper';
 // import { getCreditBalance, initiateTopup } from '../../utils/wallet_helper';
 import { getCreditBalance, initiateTopup } from '../../../utils/wallet_helper';
+import ListenerNav from '@/app/Components/Listener/ListenerNav';
 
 
 // ─── Preset top-up amounts ────────────────────────────────────────
@@ -75,6 +76,7 @@ const WalletComponent = () => {
   // ── Render ───────────────────────────────────────────────────
   return (
     <>
+       <ListenerNav />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap');
 

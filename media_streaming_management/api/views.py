@@ -65,7 +65,6 @@ from rest_framework.decorators import api_view, permission_classes, parser_class
 @permission_classes([IsAuthenticated])
 @parser_classes([MultiPartParser, FormParser])
 def upload_track_api(request):
-    print("🚀 upload_track_api called")
     """
     Upload track to Backblaze with AI analysis.
     
@@ -80,19 +79,15 @@ def upload_track_api(request):
     # 1. Ensure user is an artist
     try:
         artist = request.user.artist
-        print("🚀 Artist found:", artist)
     except Artist.DoesNotExist:
-        print("🚀 User is not an artist")
         return Response({
             'status': 'error',
             'message': 'Only artists can upload tracks.'
         }, status=status.HTTP_403_FORBIDDEN)
 
     # 2. Validate base data with serializer
-    print("🚀 Request data:", request.data)
     serializer = UploadTrackSerializer(data=request.data, context={'request': request})
     if not serializer.is_valid():
-        print("🚀 Serializer errors:", serializer.errors)
         return Response({
             'status': 'error',
             'message': 'Validation failed.',
@@ -102,7 +97,6 @@ def upload_track_api(request):
     audio_file = request.FILES.get('audio_file')
     cover_image = request.FILES.get('cover_image')
     if not audio_file:
-        print("🚀 No audio file provided")
         return Response({
             'status': 'error',
             'message': 'Audio file is required.'
@@ -129,7 +123,6 @@ def upload_track_api(request):
         try:
             ai_data = analyze_track_with_ai(temp_path, track.title, artist_name)
 
-            print('ai data', ai_data)
             if ai_data:
                 track.bpm = ai_data.get('bpm')
                 # ai_analysis = json.loads(ai_data.get('ai_analysis', '{}'))
@@ -206,7 +199,6 @@ def retrieve_track_api(request, track_id):
 
     serializer = GetSingleTrackListSerializer(track, context={'request': request})
 
-    print('serizlizer',serializer)
     return Response({
         'status': 'success',
         'data': serializer.data
@@ -234,24 +226,41 @@ def retrieve_all_tracks_api(request):
 
     serializer = GetAllTracksDetailSerializer(queryset, many=True, context={'request': request})
 
-    print('serializer data', serializer.data)
     return Response({
         'status': 'success',
         'data': serializer.data
     }, status=status.HTTP_200_OK)
+
 
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def my_tracks_api(request):
-    artist = request.user.artist
-    queryset = Track.objects.filter(artist=artist).order_by('-upload_date')
-    
-    serializer = GetAllArtistTrackListSerializer(queryset, many=True, context={'request': request})
+    try:
+        artist = Artist.objects.get(user=request.user)
+    except Artist.DoesNotExist:
+        return Response({
+            "status": "success",
+            "data": []
+        }, status=status.HTTP_200_OK)
+
+    tracks = Track.objects.filter(artist=artist)
     return Response({
-        'status': 'success',
-        'data': serializer.data
+        "status": "success",
+        "data": TrackSerializer(tracks, many=True).data
     }, status=status.HTTP_200_OK)
+
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def my_tracks_api(request):
+#     artist = request.user.artist
+#     queryset = Track.objects.filter(artist=artist).order_by('-upload_date')
+    
+#     serializer = GetAllArtistTrackListSerializer(queryset, many=True, context={'request': request})
+#     return Response({
+#         'status': 'success',
+#         'data': serializer.data
+#     }, status=status.HTTP_200_OK)
 
 
 
@@ -364,23 +373,18 @@ def get_play_token_api(request, track_id):
 @permission_classes([AllowAny])
 def play_with_token_api(request, token):
     try:
-        print('inside Api')
         data = signing.loads(token, max_age=30)
 
-        print('signed in', data)
         if time.time() > data["exp"]:
             return HttpResponseForbidden("Token expired")
 
         track = get_object_or_404(Track, id=data["track_id"])
-        print('track', track)
 
         if not track.stream_url:
-            print('not track')
             return HttpResponseForbidden("No stream")
 
         headers = {}
         if "HTTP_RANGE" in request.META:
-            print('header range inside')
             headers["Range"] = request.META["HTTP_RANGE"]
 
         r = requests.get(
@@ -388,8 +392,6 @@ def play_with_token_api(request, token):
             headers=headers,
             stream=True,
         )
-
-        print('rrrrrrrrrrrrrr', r)
 
         response = StreamingHttpResponse(
             r.iter_content(chunk_size=8192),
@@ -526,7 +528,6 @@ def initiate_topup_api(request):
     Returns Paystack authorization URL to redirect to.
     """
     amount_rands = request.data.get('amount_rands')
-    print('amount_rands', amount_rands)
     if not amount_rands or float(amount_rands) <= 0:
         return Response({
             'status': 'error',
@@ -535,7 +536,6 @@ def initiate_topup_api(request):
 
     amount_rands = float(amount_rands)
     credits_to_add = amount_rands  # 1 Rand = 1 credit, simple for now
-    print('credits_to_add', credits_to_add)
 
     # Paystack expects amount in kobo/cents (smallest currency unit)
     amount_in_cents = int(amount_rands * 100)
@@ -545,7 +545,6 @@ def initiate_topup_api(request):
         'Content-Type': 'application/json',
     }
 
-    print('headers', headers)
     payload = {
         'email': request.user.email,
         'amount': amount_in_cents,
@@ -558,7 +557,6 @@ def initiate_topup_api(request):
         }
     }
 
-    print('payload', payload)
 
 
     try:
@@ -569,13 +567,8 @@ def initiate_topup_api(request):
             timeout=30
         )
 
-        print('paystack response status', response)
-        print(response.status_code)
-        print(response.text)
 
         data = response.json()
-
-        print('paystack response', data)
 
         if not data.get('status'):
             return Response({
@@ -583,8 +576,7 @@ def initiate_topup_api(request):
                 'message': data.get('message', 'Failed to initialize payment.')
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        print("status:", response.status_code)
-        print("body:", response.text)
+
 
         # Create pending top-up record
         CreditTopUp.objects.create(
@@ -625,7 +617,8 @@ def send_tip_api(request):
 
     credits_amount = Decimal(str(credits_amount))
 
-    if credits_amount < constants.MINIMUM_TIP_AMOUNT:  # minimum tip
+    if credits_amount < Decimal(str(constants.MINIMUM_TIP_AMOUNT)):  # minimum tip
+
         return Response({'status': 'error', 'message': f'Minimum tip is {constants.MINIMUM_TIP_AMOUNT} credits.'}, status=400)
 
     try:
@@ -633,7 +626,9 @@ def send_tip_api(request):
     except Track.DoesNotExist:
         return Response({'status': 'error', 'message': 'Track not found.'}, status=404)
 
-    platform_fee  = (credits_amount * Decimal('0.15')).quantize(Decimal('0.01'))
+    # platform_fee  = (credits_amount * Decimal('0.15')).quantize(Decimal('0.01'))
+    platform_fee = (credits_amount * Decimal('0.18')).quantize(Decimal('0.01')) 
+
     artist_amount = credits_amount - platform_fee
 
     try:
@@ -690,14 +685,10 @@ def verify_topup_webhook(request):
     Paystack calls this after a payment completes.
     Must be idempotent — Paystack may retry this call.
     """
-    print("RAW BODY:", request.body)
-    print("PARSED DATA:", request.data)
-    
+
     event = request.data
     event_type = event.get('event')
-    print("EVENT TYPE:", event_type)
 
-    print('Webhook received:', request.data)
     event = request.data
     event_type = event.get('event')
 
@@ -744,8 +735,6 @@ def verify_topup_webhook(request):
         account.balance += topup.credits_added
         account.save(update_fields=['balance'])
     
-    print(f"Credits added: {topup.credits_added} to user {topup.user.email}")
-
     return Response({'status': 'success', 'message': 'Credits added.'}, status=200)
 
 

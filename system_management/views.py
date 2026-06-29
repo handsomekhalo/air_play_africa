@@ -393,6 +393,8 @@ def artist_onboarding_step_2(request):
 
 @csrf_exempt
 def get_artist_profile(request):
+
+    
     """
     Proxy view to fetch logged-in artist profile
     """
@@ -429,6 +431,13 @@ def get_artist_profile(request):
 
         # 3️⃣ Build API URL
         url_path = reverse_lazy("get_artist_profile_api")
+
+        def host_url(request=None):
+            """
+            Returns base URL for internal proxy-to-self calls.
+            Always use 127.0.0.1 to avoid HOST header inconsistency.
+            """
+            return "http://127.0.0.1:8000"
         api_url = f"{host_url(request)}{url_path}"
 
         print("API URL:", api_url)

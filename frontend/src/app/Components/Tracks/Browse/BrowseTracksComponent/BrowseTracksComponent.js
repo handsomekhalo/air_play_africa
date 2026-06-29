@@ -6,6 +6,8 @@ import { getAllTracks } from "@/utils/tracks_api_helper";
 import backendApi from "@/utils/backendApi";
 import { v4 as uuidv4 } from 'uuid';
 import { useAuthGuard } from '@/utils/useAuthGuard';
+import ListenerNav from '@/app/Components/Listener/ListenerNav';
+
 
 // inside the component, as the very first line before any other logic:
 
@@ -298,7 +300,7 @@ function TrackCard({ track, isActive, isPlaying, onPlay }) {
 // ─── Main Component ──────────────────────────────────────────────
 
 const BrowseTracksComponent = () => {
-  useAuthGuard('/listener/login', 'Listener');
+  // useAuthGuard('/listener/login', 'Listener');
   const [tracks, setTracks]         = useState([]);
   const [filtered, setFiltered]     = useState([]);
   const [loading, setLoading]       = useState(true);
@@ -500,6 +502,8 @@ useEffect(() => {
 
       {/* Hidden audio element */}
       <audio ref={audioRef} onEnded={() => setIsPlaying(false)} />
+        <ListenerNav />
+
 
       <div style={{
         minHeight: '100vh',

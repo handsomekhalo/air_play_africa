@@ -13,7 +13,6 @@ from django.views.decorators.csrf import csrf_exempt
 @csrf_exempt
 def upload_track(request):
 
-    print("🚀 upload_track called")
     """
     Proxy view to upload a track (multipart/form-data).
     Forwards request to DRF upload_track_api.
@@ -88,14 +87,12 @@ def upload_track(request):
         )
 
     except requests.exceptions.RequestException as e:
-        print("❌ Request Exception:", str(e))
         return JsonResponse({
             "status": "error",
             "message": f"Request failed: {str(e)}"
         }, status=500)
 
     except Exception as e:
-        print("❌ General Exception:", str(e))
         return JsonResponse({
             "status": "error",
             "message": f"Server error: {str(e)}"
@@ -110,7 +107,6 @@ def my_tracks(request):
     Forwards request to DRF my_tracks_api.
     """
 
-    print("🎵 my_tracks proxy called")
 
     if request.method != "GET":
         return JsonResponse({
@@ -166,14 +162,12 @@ def my_tracks(request):
         )
 
     except requests.exceptions.RequestException as e:
-        print("❌ Request Exception:", str(e))
         return JsonResponse({
             "status": "error",
             "message": f"Request failed: {str(e)}"
         }, status=500)
 
     except Exception as e:
-        print("❌ General Exception:", str(e))
         return JsonResponse({
             "status": "error",
             "message": f"Server error: {str(e)}"
@@ -229,8 +223,6 @@ def retrieve_all_tracks(request):
     Proxy view to retrieve all ready tracks.
     Supports optional query params: ?genre=&mood=&artist=
     """
-    print("🟢 Retrieve All Tracks Proxy called")
-
     if request.method != "GET":
         return JsonResponse({
             "status": "error",
@@ -247,12 +239,8 @@ def retrieve_all_tracks(request):
         if query_params:
             api_url = f"{api_url}?{query_params}"
 
-        print("API URL:", api_url)
-
         # 2️⃣ Forward request — no auth header needed (AllowAny)
         response = requests.get(api_url, timeout=30)
-
-        print("API Response Status:", response.status_code)
 
         # 3️⃣ Handle errors
         if response.status_code != 200:
@@ -266,14 +254,12 @@ def retrieve_all_tracks(request):
         return JsonResponse(response.json(), status=200)
 
     except requests.exceptions.RequestException as e:
-        print("❌ Request Exception:", str(e))
         return JsonResponse({
             "status": "error",
             "message": f"Request failed: {str(e)}"
         }, status=500)
 
     except Exception as e:
-        print("❌ General Exception:", str(e))
         return JsonResponse({
             "status": "error",
             "message": f"Server error: {str(e)}"

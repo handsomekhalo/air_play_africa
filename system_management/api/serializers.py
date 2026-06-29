@@ -1,4 +1,4 @@
-from media_streaming_management.models import Artist,Stream, Tip, Track
+from media_streaming_management.models import Artist, ArtistEarnings, CreditAccount,Stream, Tip, Track
 from system_management import constants
 from system_management.models import  Profile, User
 
@@ -124,7 +124,8 @@ class ArtistCreateSerializer(serializers.ModelSerializer):
         # Extract optional fields with defaults
         bio = validated_data.get('bio', '')
         location = validated_data.get('location', '')
-        wallet_address = validated_data.get('wallet_address', '')
+        # wallet_address = validated_data.get('wallet_address', '')
+        wallet_address = validated_data.get('wallet_address') or None
 
         artist_type = UserType.objects.get(name__iexact='artist')
 
@@ -144,6 +145,10 @@ class ArtistCreateSerializer(serializers.ModelSerializer):
             wallet_address=wallet_address,
             is_onboarded=False,  # ✅ critical for onboarding flow
         )
+
+        # Right after Artist.objects.create(...)
+        CreditAccount.objects.create(user=user, balance=0)
+        ArtistEarnings.objects.create(artist=artist, balance_credits=0, total_earned=0, total_withdrawn=0)
 
         return artist
 
@@ -489,5 +494,8 @@ class ListenerRegisterSerializer(serializers.ModelSerializer):
             last_name  = validated_data['last_name'],
             user_type  = listener_type,
         )
- 
+
+         # ✅ Create credit account immediately — balance starts at 0
+        CreditAccount.objects.create(user=user, balance=0)
+    
         return user

@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import backendApi from '@/utils/backendApi';
-import { useAuthGuard } from "@/utils/useAuthGuard";
-
+import backendApi from "../../../utils/backendApi";
+import { useAuthGuard } from "../../../utils/useAuthGuard";
 // ─── Field config ────────────────────────────────────────────────
 // Maps to what UserModelSerializer + Profile model returns
 const FIELD_CONFIG = [
@@ -45,52 +44,27 @@ const ListenerProfileComponent = () => {
   const [success, setSuccess]   = useState(null);
 
   // ── Load profile on mount ─────────────────────────────────────
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const csrfFromCookies = document.cookie
-          .split('; ')
-          .find((row) => row.startsWith('csrftoken='))?.split('=')[1];
-
-        const response = await backendApi.get(
-          '/system_management/get_artist_profile/',
-          {
-            headers: { 'X-CSRFToken': csrfFromCookies || '' },
-            withCredentials: true,
-          }
-        );
-
-        if (response.data.status === 'success') {
-          setProfile(response.data.data);
-          setForm(flattenProfile(response.data.data));
-        } else {
-          // Fallback — build from localStorage if API not yet extended for listeners
-          const stored = localStorage.getItem('user');
-          if (stored) {
-            const user = JSON.parse(stored);
-            setProfile(user);
-            setForm(flattenProfile(user));
-          } else {
-            setError('Could not load profile.');
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch listener profile:', err);
-        // Graceful fallback to localStorage user data
-        const stored = localStorage.getItem('user');
-        if (stored) {
-          const user = JSON.parse(stored);
-          setProfile(user);
-          setForm(flattenProfile(user));
-        } else {
-          setError('Could not load profile.');
-        }
-      } finally {
-        setLoading(false);
+  // useEffect(() => {
+    useEffect(() => {
+  const fetchProfile = async () => {
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        const user = JSON.parse(stored);
+        setProfile(user);
+        setForm(flattenProfile(user));
+      } else {
+        setError('Could not load profile.');
       }
-    };
-    fetchProfile();
-  }, []);
+    } catch (err) {
+      console.error('Failed to load profile:', err);
+      setError('Could not load profile.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchProfile();
+}, []);
 
   // ── Handle field changes ──────────────────────────────────────
   const handleChange = (e) => {

@@ -298,6 +298,9 @@ def record_stream_api(request):
             stream = serializer.save()
             
             # Update merit score
+            # Increment play_count on the track
+            track.play_count = (track.play_count or 0) + 1
+            track.save(update_fields=['play_count', 'merit_score'])
             track = stream.track
             avg_time = track.streams.aggregate(Avg('listen_time'))['listen_time__avg'] or 0
             unique_listeners = track.streams.values('session_id').distinct().count()
@@ -306,7 +309,7 @@ def record_stream_api(request):
             tips_count = track.tips.count() if hasattr(track, 'tips') else 0
             
             track.merit_score = (unique_listeners * avg_time) + tips_count
-            track.save(update_fields=['merit_score'])
+            # track.save(update_fields=['merit_score'])
             
             return Response({
                 'status': 'success',

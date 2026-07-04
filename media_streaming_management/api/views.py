@@ -417,38 +417,91 @@ def play_with_token_api(request, token):
         return HttpResponseForbidden("Invalid token")
 
 
-
-
 @api_view(['PATCH'])
 @permission_classes([AllowAny])
 def update_stream_api(request, session_id):
-    """Update listen time for an existing stream."""
+    """Update listen time for an existing stream. Credits artist on first qualifying threshold."""
     try:
         stream = Stream.objects.get(session_id=session_id)
-        listen_time = request.data.get('listen_time', stream.listen_time)
-        
+        new_listen_time = request.data.get('listen_time', stream.listen_time)
+
         # Only update if new time is greater (prevent fraud)
-        if listen_time > stream.listen_time:
-            stream.listen_time = listen_time
-            stream.save()
-            
+        if new_listen_time <= stream.listen_time:
+            return Response({
+                'status': 'success',
+                'listen_time': stream.listen_time
+            }, status=status.HTTP_200_OK)
+
+        previously_qualified = stream.listen_time >= constants.STREAM_MIN_LISTEN_SECONDS
+        now_qualifies        = new_listen_time    >= constants.STREAM_MIN_LISTEN_SECONDS
+
+        with transaction.atomic():
+            stream.listen_time = new_listen_time
+            stream.save(update_fields=['listen_time'])
+
+            # Credit artist exactly once — when stream first crosses the threshold
+            if not previously_qualified and now_qualifies:
+                try:
+                    artist   = stream.track.artist
+                    earnings = ArtistEarnings.objects.select_for_update().get_or_create(artist=artist)[0]
+                    rate     = Decimal(str(constants.STREAM_ARTIST_RATE))
+                    earnings.balance_credits += rate
+                    earnings.total_earned    += rate
+                    earnings.save(update_fields=['balance_credits', 'total_earned'])
+                    print(f"✅ Stream credit: R{rate} → {artist.user.first_name} for track '{stream.track.title}'")
+                except Exception as e:
+                    # Don't let earnings failure break the stream update
+                    print(f"⚠️ Earnings credit failed: {e}")
+
             # Recalculate merit score
             track = stream.track
-            avg_time = track.streams.aggregate(Avg('listen_time'))['listen_time__avg'] or 0
+            avg_time         = track.streams.aggregate(Avg('listen_time'))['listen_time__avg'] or 0
             unique_listeners = track.streams.aggregate(Count('session_id', distinct=True))['session_id__count']
             track.merit_score = (unique_listeners * avg_time) + track.tips.count()
-            track.save()
-        
+            track.save(update_fields=['merit_score'])
+
         return Response({
             'status': 'success',
             'listen_time': stream.listen_time
         }, status=status.HTTP_200_OK)
-        
+
     except Stream.DoesNotExist:
         return Response({
             'status': 'error',
             'message': 'Stream not found'
         }, status=status.HTTP_404_NOT_FOUND)
+
+
+# @api_view(['PATCH'])
+# @permission_classes([AllowAny])
+# def update_stream_api(request, session_id):
+#     """Update listen time for an existing stream."""
+#     try:
+#         stream = Stream.objects.get(session_id=session_id)
+#         listen_time = request.data.get('listen_time', stream.listen_time)
+        
+#         # Only update if new time is greater (prevent fraud)
+#         if listen_time > stream.listen_time:
+#             stream.listen_time = listen_time
+#             stream.save()
+            
+#             # Recalculate merit score
+#             track = stream.track
+#             avg_time = track.streams.aggregate(Avg('listen_time'))['listen_time__avg'] or 0
+#             unique_listeners = track.streams.aggregate(Count('session_id', distinct=True))['session_id__count']
+#             track.merit_score = (unique_listeners * avg_time) + track.tips.count()
+#             track.save()
+        
+#         return Response({
+#             'status': 'success',
+#             'listen_time': stream.listen_time
+#         }, status=status.HTTP_200_OK)
+        
+#     except Stream.DoesNotExist:
+#         return Response({
+#             'status': 'error',
+#             'message': 'Stream not found'
+#         }, status=status.HTTP_404_NOT_FOUND)
     
 
 

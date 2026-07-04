@@ -63,6 +63,19 @@ export const TrackAnalytics = () => {
     fetchTracks();
   }, [authToken, isAuthenticated]);
 
+
+  // ── Adapt raw track data to TrackAnalytics' expected shape ─────
+  const trackAnalyticsData = tracks.map(t => ({
+    id: t.id,
+    title: t.title,
+    streams: t.play_count || 0,
+    earnings: 0,              // not available per-track yet — backend only tracks artist-level totals
+    listenerScore: t.merit_score ?? 0,
+    verifiedOrganic: true,    // no such field exists yet — defaulting true, flag for backend later
+    aiMood: t.ai_mood || '',
+    aiGenre: t.ai_genre || t.genre || 'Unknown',
+  }));
+
   return (
     <Card>
       <CardHeader>

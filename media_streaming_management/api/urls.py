@@ -36,5 +36,7 @@ urlpatterns = [
     path('request_withdrawal_api/', views.request_withdrawal_api, name='request_withdrawal_api'),
     path('get_my_withdrawals_api/', views.get_my_withdrawals_api, name='get_my_withdrawals_api'),
     path('admin_process_withdrawal_api/<int:withdrawal_id>/', views.admin_process_withdrawal_api, name='admin_process_withdrawal_api'),
+    path('get_artist_revenue_timeseries_api/', views.get_artist_revenue_timeseries_api, name='get_artist_revenue_timeseries_api'),
+
     ]
     

@@ -49,6 +49,11 @@ from decimal import Decimal
 from django.core.cache import cache
 from system_management import constants
 
+from django.db.models.functions import TruncDate
+from django.db.models import Sum
+from datetime import timedelta
+# from django.utils.timezone import now
+
 
 # Blockchain setup (placeholder - load from env in production)
 WEB3_PROVIDER = os.getenv('WEB3_PROVIDER', 'https://mainnet.infura.io/v3/YOUR_INFURA_KEY')  # Replace with your key
@@ -899,3 +904,58 @@ def admin_process_withdrawal_api(request, withdrawal_id):
         'message': f'Withdrawal {action}d.',
         'data': WithdrawalRequestSerializer(withdrawal).data,
     }, status=200)
+
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_artist_revenue_timeseries_api(request):
+    """
+    Returns last 7 days of stream count and tip earnings per day for the
+    logged-in artist's tracks. Used to power the dashboard revenue chart.
+    """
+    try:
+        artist = Artist.objects.get(user=request.user)
+    
+    except Artist.DoesNotExist:
+        return Response({'status': 'error', 'message': 'Artist profile not found.'}, status=404)
+
+    today = now().date()
+    start_date = today - timedelta(days=6)  # last 7 days inclusive
+
+    track_ids = Track.objects.filter(artist=artist).values_list('id', flat=True)
+
+    # Streams per day
+    stream_qs = (
+        Stream.objects
+        .filter(track_id__in=track_ids, timestamp__date__gte=start_date)
+        .annotate(day=TruncDate('timestamp'))
+        .values('day')
+        .annotate(stream_count=Count('id'))
+    )
+    streams_by_day = {row['day']: row['stream_count'] for row in stream_qs}
+
+    # Tips per day (artist_amount, post-fee)
+    tip_qs = (
+        Tip.objects
+        .filter(track_id__in=track_ids, timestamp=start_date)
+        .annotate(day=TruncDate('timestamp'))
+        .values('day')
+        .annotate(tip_total=Sum('artist_amount'))
+    )
+    tips_by_day = {row['day']: row['tip_total'] for row in tip_qs}
+
+    # Build 7-day series, oldest to newest
+    result = []
+    for i in range(7):
+        day = start_date + timedelta(days=i)
+        result.append({
+            'date': day.strftime('%a'),
+            'full_date': day.isoformat(),
+            'streams': streams_by_day.get(day, 0),
+            'tips': float(tips_by_day.get(day, 0)),
+            # 'downloads': 0,  # not tracked yet — placeholder until download feature exists
+        })
+
+        print(f"[Revenue Timeseries] {day}: streams={streams_by_day.get(day, 0)}, tips={tips_by_day.get(day, 0)}")
+    return Response({'status': 'success', 'data': result}, status=200)

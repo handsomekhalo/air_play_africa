@@ -22,58 +22,93 @@ import {
   Wallet,
 } from "lucide-react";
 import { getArtistProfile  } from "../../../utils/artist";
+import { getAllArtistEarnings, getMyTracks } from "../../../utils/artist"; 
+import {trackAnalyticsData} from "../Admin/UI/TrackAnalytics"
+import backendApi from "../../../utils/backendApi";
+
 
 export default function ArtistDashboardPage() {
   const [showUpload, setShowUpload] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
     const [profile, setProfile] = useState(null);
+    
 
     const router = useRouter();
+
+  const [earnings, setEarnings] = useState(null);   // { balance_credits, total_earned, total_withdrawn }
+  const [tracks, setTracks]     = useState([]);
+  const [tracksLoading, setTracksLoading] = useState(true);
+  const [earningsLoading, setEarningsLoading] = useState(true);
+  const [withdrawals, setWithdrawals] = useState([]);
+  const [revenueData, setRevenueData] = useState([]);
+const [revenueLoading, setRevenueLoading] = useState(true);
+
   
 
-  // Mock data (replace later with API calls)
-  const revenueData = [
-    { date: "Mon", streams: 45, tips: 12, downloads: 8 },
-    { date: "Tue", streams: 52, tips: 18, downloads: 5 },
-    { date: "Wed", streams: 61, tips: 15, downloads: 12 },
-    { date: "Thu", streams: 48, tips: 22, downloads: 9 },
-    { date: "Fri", streams: 70, tips: 28, downloads: 15 },
-    { date: "Sat", streams: 85, tips: 35, downloads: 20 },
-    { date: "Sun", streams: 92, tips: 40, downloads: 18 },
-  ];
+// ── Load revenue timeseries ─────────────────────────────────────
+useEffect(() => {
+  const fetchRevenue = async () => {
+    try {
+      // const csrfToken = await getCsrfToken();
+      const res = await backendApi.get(
+        '/media_streaming_management/get_artist_revenue_timeseries/',
+        // { headers: { "X-CSRFToken": csrfToken } }
+      );
+      if (res.data.status === 'success') {
+        setRevenueData(res.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to load revenue timeseries:', err);
+    } finally {
+      setRevenueLoading(false);
+    }
+  };
+  fetchRevenue();
+}, []);
 
-  const tracks = [
-    {
-      id: "1",
-      title: "Ubuntu Spirit",
-      streams: 15420,
-      earnings: 154.2,
-      listenerScore: 87,
-      verifiedOrganic: true,
-      aiMood: "Uplifting",
-      aiGenre: "Afro-soul",
-    },
-    {
-      id: "2",
-      title: "Motherland Rhythms",
-      streams: 8932,
-      earnings: 89.32,
-      listenerScore: 92,
-      verifiedOrganic: true,
-      aiMood: "Energetic",
-      aiGenre: "Afrobeat",
-    },
-    {
-      id: "3",
-      title: "Sunset Dreams",
-      streams: 6124,
-      earnings: 61.24,
-      listenerScore: 78,
-      verifiedOrganic: false,
-      aiMood: "Mellow",
-      aiGenre: "Amapiano",
-    },
-  ];
+  // Mock data (replace later with API calls)
+  // const revenueData = [
+  //   { date: "Mon", streams: 45, tips: 12, downloads: 8 },
+  //   { date: "Tue", streams: 52, tips: 18, downloads: 5 },
+  //   { date: "Wed", streams: 61, tips: 15, downloads: 12 },
+  //   { date: "Thu", streams: 48, tips: 22, downloads: 9 },
+  //   { date: "Fri", streams: 70, tips: 28, downloads: 15 },
+  //   { date: "Sat", streams: 85, tips: 35, downloads: 20 },
+  //   { date: "Sun", streams: 92, tips: 40, downloads: 18 },
+  // ];
+
+  // const tracks = [
+  //   {
+  //     id: "1",
+  //     title: "Ubuntu Spirit",
+  //     streams: 15420,
+  //     earnings: 154.2,
+  //     listenerScore: 87,
+  //     verifiedOrganic: true,
+  //     aiMood: "Uplifting",
+  //     aiGenre: "Afro-soul",
+  //   },
+  //   {
+  //     id: "2",
+  //     title: "Motherland Rhythms",
+  //     streams: 8932,
+  //     earnings: 89.32,
+  //     listenerScore: 92,
+  //     verifiedOrganic: true,
+  //     aiMood: "Energetic",
+  //     aiGenre: "Afrobeat",
+  //   },
+  //   {
+  //     id: "3",
+  //     title: "Sunset Dreams",
+  //     streams: 6124,
+  //     earnings: 61.24,
+  //     listenerScore: 78,
+  //     verifiedOrganic: false,
+  //     aiMood: "Mellow",
+  //     aiGenre: "Amapiano",
+  //   },
+  // ];
 
   // Add to ArtistDashboardComponent.js — replace mock data loading with:
 
@@ -101,18 +136,72 @@ export default function ArtistDashboardPage() {
       router.push('/artist-onboarding?step=1');
     });
 }, [router]);
-// useEffect(() => {
-//   getArtistProfile()
-//     .then((data) => {
-//       if (!data?.id) {
-//         router.push('/artist-onboarding?step=1');
-//       } else {
-//         setProfile(data);
-//         // real name in header
-//       }
-//     })
-//     .catch(() => router.push('/artist-onboarding?step=1'));
-// }, [router]);
+
+
+
+
+  useEffect(() => {
+    const fetchWithdrawals = async () => {
+      try {
+        // const csrfToken = await getCsrfToken();
+        const res = await backendApi.get(
+          '/media_streaming_management/get_my_withdrawals/',
+          // { headers: { "X-CSRFToken": csrfToken } }
+        );
+        if (res.data.status === 'success') {
+          setWithdrawals(res.data.data);
+        }
+      } catch (err) {
+        console.error('Failed to load withdrawals:', err);
+      }
+    };
+    fetchWithdrawals();
+  }, []);
+
+// ── Load earnings ─────────────────────────────────────────────
+  useEffect(() => {
+    const fetchEarnings = async () => {
+      try {
+        // const csrfToken = await getCsrfToken();
+        const res = await backendApi.get(
+          '/media_streaming_management/get_artist_earnings/',
+          // { headers: { "X-CSRFToken": csrfToken } }
+        );
+
+        console.log('Earnings response:', res.data);
+        if (res.data.status === 'success') {
+          setEarnings(res.data.data);
+        }
+      } catch (err) {
+        console.error('Failed to load earnings:', err);
+      } finally {
+        setEarningsLoading(false);
+      }
+    };
+    fetchEarnings();
+  }, []);
+
+
+  // ── Load tracks ──────────────────────────────────────────────
+  useEffect(() => {
+    const fetchTracks = async () => {
+      try {
+        // const csrfToken = await getCsrfToken();
+        const res = await backendApi.get(
+          '/media_streaming_management/my_tracks/',
+          // { headers: { "X-CSRFToken": csrfToken } }
+        );
+        if (res.data.status === 'success') {
+          setTracks(res.data.data);
+        }
+      } catch (err) {
+        console.error('Failed to load tracks:', err);
+      } finally {
+        setTracksLoading(false);
+      }
+    };
+    fetchTracks();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -182,35 +271,36 @@ export default function ArtistDashboardPage() {
 
       <main className="container mx-auto px-6 py-8">
         {/* Metrics */}
+    {/* Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <MetricCard
             title="Total Earnings"
-            value="R304.76"
-            change="+12.5% from last week"
-            changeType="positive"
+            value={earningsLoading ? '...' : `R${parseFloat(earnings?.total_earned || 0).toFixed(2)}`}
+            change={`Balance: R${parseFloat(earnings?.balance_credits || 0).toFixed(2)}`}
+            changeType="neutral"
             icon={DollarSign}
             variant="gold"
           />
           <MetricCard
-            title="Stream Revenue"
-            value="R154.20"
-            change="From 15,420 streams"
+            title="Available Balance"
+            value={earningsLoading ? '...' : `R${parseFloat(earnings?.balance_credits || 0).toFixed(2)}`}
+            change="Ready to withdraw"
             changeType="neutral"
             icon={Music}
             variant="emerald"
           />
           <MetricCard
-            title="Tips Received"
-            value="R110.56"
-            change="+28 new tips"
-            changeType="positive"
+            title="Total Withdrawn"
+            value={earningsLoading ? '...' : `R${parseFloat(earnings?.total_withdrawn || 0).toFixed(2)}`}
+            change="Lifetime payouts"
+            changeType="neutral"
             icon={TrendingUp}
             variant="coral"
           />
           <MetricCard
-            title="Total Listeners"
-            value="8,432"
-            change="+420 this week"
+            title="Total Tracks"
+            value={tracksLoading ? '...' : tracks.length}
+            change={`${tracks.filter(t => t.status === 'ready').length} live`}
             changeType="positive"
             icon={Users}
             variant="default"
@@ -218,12 +308,24 @@ export default function ArtistDashboardPage() {
         </div>
 
         {/* Revenue Chart */}
-        <div className="mb-8">
+        {/* Revenue Chart */}
+    <div className="mb-8">
+        {revenueLoading ? (
+          <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+            Loading revenue data…
+          </div>
+        ) : (
           <RevenueChart data={revenueData} />
-        </div>
+        )}
+      </div>
+        {/* <div className="mb-8">
+          <RevenueChart data={revenueData} />
+        </div> */}
 
         {/* Track Analytics */}
-        <TrackAnalytics tracks={tracks} />
+        {/* <TrackAnalytics tracks={tracks} /> */}
+        <TrackAnalytics />
+
 
         {/* Payout History */}
         <div className="mt-8 rounded-xl border border-border bg-card p-6">
@@ -237,7 +339,34 @@ export default function ArtistDashboardPage() {
             </Button>
           </div>
 
+
           <div className="space-y-3">
+            {withdrawals.length === 0 && (
+              <p className="text-sm text-muted-foreground">No payouts yet.</p>
+            )}
+            {withdrawals.map((payout) => (
+              <div
+                key={payout.id}
+                className="flex items-center justify-between rounded-lg bg-muted/50 p-4 hover:bg-muted"
+              >
+                <div>
+                  <p className="font-medium">R{parseFloat(payout.amount).toFixed(2)}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {new Date(payout.requested_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <span className={`rounded-full px-3 py-1 text-xs font-medium ${
+                  payout.status === 'paid' ? 'bg-emerald/10 text-emerald' :
+                  payout.status === 'rejected' ? 'bg-red-100 text-red-600' :
+                  'bg-yellow-100 text-yellow-700'
+                }`}>
+                  {payout.status.charAt(0).toUpperCase() + payout.status.slice(1)}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* <div className="space-y-3">
             {[
               { date: "2024-01-15", amount: 245.8 },
               { date: "2024-01-08", amount: 189.5 },
@@ -258,7 +387,7 @@ export default function ArtistDashboardPage() {
                 </span>
               </div>
             ))}
-          </div>
+          </div> */}
         </div>
       </main>
     </div>

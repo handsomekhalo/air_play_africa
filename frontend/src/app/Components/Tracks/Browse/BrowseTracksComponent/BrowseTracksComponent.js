@@ -7,10 +7,8 @@ import backendApi from "@/utils/backendApi";
 import { v4 as uuidv4 } from 'uuid';
 import { useAuthGuard } from '@/utils/useAuthGuard';
 import ListenerNav from '@/app/Components/Listener/ListenerNav';
-
-
-// inside the component, as the very first line before any other logic:
-
+// import TipSuccessToast from '@/app/Components/Listener/TipSuccessToast'; 
+import { TipModal, TipSuccessToast } from '../../../Listener/TipModal';
 // import { getCsrfToken } from "@/utils/csrf"; 
 
 
@@ -189,7 +187,9 @@ function PlayerBar({ track, audioRef, isPlaying, onPlayPause, onClose }) {
 
 // ─── Track Card ──────────────────────────────────────────────────
 
-function TrackCard({ track, isActive, isPlaying, onPlay }) {
+// function TrackCard({ track, isActive, isPlaying, onPlay }) {
+  function TrackCard({ track, isActive, isPlaying, onPlay, onTip }) {
+
   const colors = nameToColor(track.artist_name);
   const genre  = track.ai_genre || track.genre || 'Unknown';
   const mood   = track.ai_mood  || '';
@@ -197,21 +197,34 @@ function TrackCard({ track, isActive, isPlaying, onPlay }) {
   return (
     <div
       onClick={onPlay}
-      style={{
-        background: isActive ? '#161616' : '#111111',
-        border: isActive
-          ? `1px solid ${colors[0]}44`
-          : '1px solid #1e1e1e',
-        borderRadius: 14,
-        padding: '16px',
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 14,
-        position: 'relative',
-        overflow: 'hidden',
-      }}
+        style={{
+    background: isActive ? '#161616' : '#111111',
+    border: isActive ? `1px solid ${colors[0]}44` : '1px solid #1e1e1e',
+    borderRadius: 14,
+    padding: '16px 56px 16px 16px',  // ← add right padding to clear the play icon
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 14,
+    position: 'relative',
+    overflow: 'hidden',
+  }}
+      // style={{
+      //   background: isActive ? '#161616' : '#111111',
+      //   border: isActive
+      //     ? `1px solid ${colors[0]}44`
+      //     : '1px solid #1e1e1e',
+      //   borderRadius: 14,
+      //   padding: '16px',
+      //   cursor: 'pointer',
+      //   transition: 'all 0.2s ease',
+      //   display: 'flex',
+      //   alignItems: 'center',
+      //   gap: 14,
+      //   position: 'relative',
+      //   overflow: 'hidden',
+      // }}
       onMouseEnter={e => {
         if (!isActive) e.currentTarget.style.borderColor = '#333';
       }}
@@ -270,7 +283,41 @@ function TrackCard({ track, isActive, isPlaying, onPlay }) {
       </div>
 
       {/* Right side */}
-      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+<div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div>
+          <p style={{ margin: '0 0 4px', color: '#555', fontSize: 13, fontFamily: 'monospace' }}>
+            {formatDuration(track.duration)}
+          </p>
+          {track.bpm && (
+            <p style={{ margin: 0, color: '#444', fontSize: 11, fontFamily: "'DM Sans', sans-serif" }}>
+              {track.bpm} BPM
+            </p>
+          )}
+        </div>
+
+
+
+        {/* Tip button */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onTip(track); }}
+          title="Tip this artist"
+          style={{
+            width: 32, height: 32, borderRadius: '50%',
+            border: `1px solid ${colors[0]}44`,
+            background: `${colors[0]}15`,
+            color: colors[0], fontSize: 14, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0, transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = `${colors[0]}30`; }}
+          onMouseLeave={e => { e.currentTarget.style.background = `${colors[0]}15`; }}
+        >
+          💸
+        </button>
+        </div>
+
+
+      {/* <div style={{ textAlign: 'right', flexShrink: 0 }}>
         <p style={{
           margin: '0 0 4px', color: '#555', fontSize: 13,
           fontFamily: 'monospace',
@@ -282,7 +329,7 @@ function TrackCard({ track, isActive, isPlaying, onPlay }) {
             {track.bpm} BPM
           </p>
         )}
-      </div>
+      </div> */}
 
       {/* Play icon overlay on hover */}
       <div style={{
@@ -312,6 +359,8 @@ const BrowseTracksComponent = () => {
   const sessionId = useRef(uuidv4()); // unique per browser session
   const listenTimerRef = useRef(null);
   const streamSessionRef = useRef(null); // stores session_id per track play
+  const [tippingTrack, setTippingTrack] = useState(null);
+const [tipToast, setTipToast]         = useState(null);
 
 
   const audioRef = useRef(null);
@@ -463,6 +512,13 @@ const stopListenTimer = () => {
 };
 
 
+ const handleTipSuccess = (data) => {
+    setTippingTrack(null);
+    setTipToast({ message: data.message, newBalance: data.new_balance });
+  };
+
+
+
 // Cleanup timer on unmount
 useEffect(() => {
   return () => {
@@ -606,22 +662,35 @@ useEffect(() => {
           )}
 
           {!loading && !error && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {filtered.map((track, i) => (
-                <div
-                  key={track.id}
-                  className="track-card-anim"
-                  style={{ animationDelay: `${i * 0.04}s` }}
-                >
-                  <TrackCard
-                    track={track}
-                    isActive={currentTrack?.id === track.id}
-                    isPlaying={isPlaying && currentTrack?.id === track.id}
-                    onPlay={() => handlePlay(track)}
-                  />
-                </div>
-              ))}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {filtered.map((track, i) => (
+            <div key={track.id} className="track-card-anim" style={{ animationDelay: `${i * 0.04}s` }}>
+              <TrackCard
+                track={track}
+                isActive={currentTrack?.id === track.id}
+                isPlaying={isPlaying && currentTrack?.id === track.id}
+                onPlay={() => handlePlay(track)}
+                onTip={(t) => setTippingTrack(t)}
+              />
             </div>
+          ))}
+        </div>
+            // <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            //   {filtered.map((track, i) => (
+            //     <div
+            //       key={track.id}
+            //       className="track-card-anim"
+            //       style={{ animationDelay: `${i * 0.04}s` }}
+            //     >
+            //       <TrackCard
+            //         track={track}
+            //         isActive={currentTrack?.id === track.id}
+            //         isPlaying={isPlaying && currentTrack?.id === track.id}
+            //         onPlay={() => handlePlay(track)}
+            //       />
+            //     </div>
+            //   ))}
+            // </div>
           )}
         </div>
       </div>
@@ -636,6 +705,24 @@ useEffect(() => {
           onClose={handleClose}
         />
       )}
+
+    {tippingTrack && (
+      <TipModal
+        track={tippingTrack}
+        onClose={() => setTippingTrack(null)}
+        onSuccess={handleTipSuccess}
+      />
+    )}
+         {/* Tip success toast */}
+      {tipToast && (
+        <TipSuccessToast
+          message={tipToast.message}
+          newBalance={tipToast.newBalance}
+          onClose={() => setTipToast(null)}
+        />
+      )}
+
+
     </>
   );
 };

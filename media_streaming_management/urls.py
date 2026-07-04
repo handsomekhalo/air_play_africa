@@ -22,5 +22,7 @@ urlpatterns = [
     path('admin_process_withdrawal/<int:withdrawal_id>/', views.admin_process_withdrawal, name='admin_process_withdrawal'),
     path('get_credit_balance/', views.get_credit_balance, name='get_credit_balance'),
     path('get_artist_earnings/', views.get_artist_earnings, name='get_artist_earnings'),
+    path('get_artist_revenue_timeseries/', views.get_artist_revenue_timeseries, name='get_artist_revenue_timeseries'),
+
 
 ]

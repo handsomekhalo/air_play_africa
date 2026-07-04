@@ -36,45 +36,61 @@ export const TrackAnalytics = () => {
 
   };
 
-  useEffect(() => {
-    if (!authToken || !isAuthenticated) return;
+useEffect(() => {
+  if (!authToken || !isAuthenticated) return;
 
-    const fetchTracks = async () => {
-      try {
-        const res = await backendApi.get(
-          "/media_streaming_management/my_tracks/",
-          {
-            headers: {
-              Authorization: `Token ${authToken}`,
-            },
-          }
-        );
+  const fetchData = async () => {
+    try {
+      const [tracksRes, earningsRes] = await Promise.all([
+        backendApi.get('/media_streaming_management/my_tracks/', {
+          headers: { Authorization: `Token ${authToken}` }
+        }),
+        backendApi.get('/media_streaming_management/get_artist_track_earnings/', {
+          headers: { Authorization: `Token ${authToken}` }
+        })
+      ]);
 
-        if (res.data?.status === "success") {
-          setTracks(res.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch tracks:", error);
-      } finally {
-        setLoading(false);
+      if (tracksRes.data?.status === 'success' && earningsRes.data?.status === 'success') {
+        const earningsMap = {};
+        earningsRes.data.data.forEach(e => {
+          earningsMap[e.track_id] = e;
+        });
+
+        // Merge earnings into tracks
+        const merged = tracksRes.data.data.map(t => ({
+          ...t,
+          earnings:           parseFloat(earningsMap[t.id]?.total_earnings  || 0),
+          stream_earnings:    parseFloat(earningsMap[t.id]?.stream_earnings  || 0),
+          tip_earnings:       parseFloat(earningsMap[t.id]?.tip_earnings     || 0),
+          qualifying_streams: earningsMap[t.id]?.qualifying_streams          || 0,
+        }));
+
+        setTracks(merged);
       }
-    };
+    } catch (error) {
+      console.error('Failed to fetch track data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchTracks();
-  }, [authToken, isAuthenticated]);
-
+  fetchData();
+}, [authToken, isAuthenticated]);
 
   // ── Adapt raw track data to TrackAnalytics' expected shape ─────
-  const trackAnalyticsData = tracks.map(t => ({
-    id: t.id,
-    title: t.title,
-    streams: t.play_count || 0,
-    earnings: 0,              // not available per-track yet — backend only tracks artist-level totals
-    listenerScore: t.merit_score ?? 0,
-    verifiedOrganic: true,    // no such field exists yet — defaulting true, flag for backend later
-    aiMood: t.ai_mood || '',
-    aiGenre: t.ai_genre || t.genre || 'Unknown',
-  }));
+const trackAnalyticsData = tracks.map(t => ({
+  id:                 t.id,
+  title:              t.title,
+  streams:            t.play_count || 0,
+  qualifying_streams: t.qualifying_streams || 0,
+  earnings:           t.earnings || 0,
+  stream_earnings:    t.stream_earnings || 0,
+  tip_earnings:       t.tip_earnings || 0,
+  listenerScore:      t.merit_score ?? 0,
+  verifiedOrganic:    true,
+  aiMood:             t.ai_mood || '',
+  aiGenre:            t.ai_genre || t.genre || 'Unknown',
+}));
 
   return (
     <Card>
@@ -174,17 +190,15 @@ export const TrackAnalytics = () => {
       </div>
 
       <div className="grid grid-cols-3 gap-4">
-        <div>
-          <p className="text-xs text-muted-foreground">Streams</p>
-          <p className="text-lg font-bold">
-            {Number(track.streams).toLocaleString()}
-          </p>
-        </div>
+  
 
         <div>
           <p className="text-xs text-muted-foreground">Earnings</p>
           <p className="text-lg font-bold text-emerald">
             R{Number(track.earnings).toFixed(2)}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {track.qualifying_streams} streams · R{Number(track.tip_earnings).toFixed(2)} tips
           </p>
         </div>
 

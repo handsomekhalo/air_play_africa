@@ -25,6 +25,8 @@ import { getArtistProfile  } from "../../../utils/artist";
 import { getAllArtistEarnings, getMyTracks } from "../../../utils/artist"; 
 import {trackAnalyticsData} from "../Admin/UI/TrackAnalytics"
 import backendApi from "../../../utils/backendApi";
+import WithdrawalModal from '../Artists/WithdrawalModal';
+
 
 
 export default function ArtistDashboardPage() {
@@ -41,7 +43,9 @@ export default function ArtistDashboardPage() {
   const [earningsLoading, setEarningsLoading] = useState(true);
   const [withdrawals, setWithdrawals] = useState([]);
   const [revenueData, setRevenueData] = useState([]);
-const [revenueLoading, setRevenueLoading] = useState(true);
+  const [revenueLoading, setRevenueLoading] = useState(true);
+  const [showWithdrawal, setShowWithdrawal] = useState(false);
+
 
   
 
@@ -228,7 +232,12 @@ useEffect(() => {
                 Upload Track
               </Button>
 
-              <Button className="bg-gradient-to-r from-gold to-coral hover:opacity-90">
+
+               {/* Update the Withdraw Funds button */}
+              <Button
+                className="bg-gradient-to-r from-gold to-coral hover:opacity-90"
+                onClick={() => setShowWithdrawal(true)}
+              >
                 <Wallet className="h-4 w-4 mr-2" />
                 Withdraw Funds
               </Button>
@@ -268,6 +277,22 @@ useEffect(() => {
           </div>
         </div>
       )}
+
+      {/* // Add modal render — place it alongside your existing upload modal */}
+{showWithdrawal && (
+  <WithdrawalModal
+    onClose={() => setShowWithdrawal(false)}
+    availableBalance={parseFloat(earnings?.balance_credits || 0)}
+    onSuccess={(withdrawal) => {
+      setShowWithdrawal(false);
+      // Refresh earnings so balance updates immediately
+      setEarnings(prev => ({
+        ...prev,
+        balance_credits: parseFloat(prev.balance_credits) - parseFloat(withdrawal.amount),
+      }));
+    }}
+  />
+)}
 
       <main className="container mx-auto px-6 py-8">
         {/* Metrics */}

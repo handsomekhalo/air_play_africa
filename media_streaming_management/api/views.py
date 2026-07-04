@@ -1015,3 +1015,57 @@ def get_artist_revenue_timeseries_api(request):
 
         print(f"[Revenue Timeseries] {day}: streams={streams_by_day.get(day, 0)}, tips={tips_by_day.get(day, 0)}")
     return Response({'status': 'success', 'data': result}, status=200)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_artist_track_earnings_api(request):
+    """
+    Returns per-track earnings breakdown for the logged-in artist.
+    Earnings = qualifying streams * STREAM_ARTIST_RATE + tips received (artist_amount)
+    """
+    try:
+        artist = Artist.objects.get(user=request.user)
+    except Artist.DoesNotExist:
+        return Response({
+            'status': 'error',
+            'message': 'Artist profile not found.'
+        }, status=404)
+
+    tracks = Track.objects.filter(artist=artist, status='ready')
+
+    result = []
+    for track in tracks:
+        # Qualifying streams — listen_time >= 30s
+        qualifying_streams = track.streams.filter(
+            listen_time__gte=constants.STREAM_MIN_LISTEN_SECONDS
+        ).count()
+
+        stream_earnings = qualifying_streams * Decimal(str(constants.STREAM_ARTIST_RATE))
+
+        # Tips received by this track (artist's cut after platform fee)
+        tip_earnings = track.tips.aggregate(
+            total=Sum('artist_amount')
+        )['total'] or Decimal('0.00')
+
+        total_earnings = stream_earnings + tip_earnings
+
+        result.append({
+            'track_id':           track.id,
+            'title':              track.title,
+            'play_count':         track.play_count or 0,
+            'qualifying_streams': qualifying_streams,
+            'stream_earnings':    str(stream_earnings),
+            'tip_earnings':       str(tip_earnings),
+            'total_earnings':     str(total_earnings),
+            'merit_score':        track.merit_score or 0,
+            'ai_genre':           track.ai_genre or track.genre or '',
+            'ai_mood':            track.ai_mood or '',
+        })
+
+        print(f"[Track Earnings] {track.title}: qualifying_streams={qualifying_streams}, stream_earnings={stream_earnings}, tip_earnings={tip_earnings}, total_earnings={total_earnings}")
+
+    return Response({
+        'status': 'success',
+        'data': result
+    }, status=200)

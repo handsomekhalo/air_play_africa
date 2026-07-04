@@ -559,8 +559,6 @@ def get_artist_revenue_timeseries(request):
         api_url = f"{host_url(request)}{url_path}"
 
 
-        print("API URL:", api_url)
-
         # 4️⃣ Forward request
         response = requests.get(
             api_url,
@@ -568,7 +566,6 @@ def get_artist_revenue_timeseries(request):
             timeout=30
         )
 
-        print("API Response Status:", response.status_code)
 
         # 5️⃣ Handle API errors
         if response.status_code != 200:
@@ -579,6 +576,74 @@ def get_artist_revenue_timeseries(request):
             }, status=response.status_code)
 
         # 6️⃣ Success
+        return JsonResponse(response.json(), status=response.status_code)
+
+    except requests.exceptions.RequestException as e:
+        print("❌ Request Exception:", str(e))
+        return JsonResponse({
+            "status": "error",
+            "message": f"Request failed: {str(e)}"
+        }, status=500)
+
+    except Exception as e:
+        print("❌ General Exception:", str(e))
+        return JsonResponse({
+            "status": "error",
+            "message": f"Server error: {str(e)}"
+        }, status=500)
+
+
+@csrf_exempt
+def get_artist_track_earnings(request):
+    """
+    Proxy view to fetch per-track earnings breakdown for logged-in artist
+    """
+    print("🟢 Get Artist Track Earnings Proxy called")
+
+    if request.method != "GET":
+        return JsonResponse({
+            "status": "error",
+            "message": "Method not allowed"
+        }, status=405)
+
+    try:
+        auth_header = request.headers.get("Authorization", "")
+        token = None
+
+        if auth_header.startswith("Token "):
+            token = auth_header.split("Token ")[-1]
+        elif auth_header.startswith("Bearer "):
+            token = auth_header.split("Bearer ")[-1]
+
+        if not token:
+            return JsonResponse({
+                "status": "error",
+                "message": "Authorization token is required."
+            }, status=401)
+
+        headers = {
+            "Authorization": f"Token {token}",
+            "Content-Type": "application/json"
+        }
+
+        url_path = reverse_lazy("get_artist_track_earnings_api")
+        api_url = f"{host_url(request)}{url_path}"
+
+
+        response = requests.get(
+            api_url,
+            headers=headers,
+            timeout=30
+        )
+
+
+        if response.status_code != 200:
+            return JsonResponse({
+                "status": "error",
+                "message": "API error",
+                "details": response.text
+            }, status=response.status_code)
+
         return JsonResponse(response.json(), status=response.status_code)
 
     except requests.exceptions.RequestException as e:

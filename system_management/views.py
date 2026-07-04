@@ -440,7 +440,6 @@ def get_artist_profile(request):
             return "http://127.0.0.1:8000"
         api_url = f"{host_url(request)}{url_path}"
 
-        print("API URL:", api_url)
 
         # 4️⃣ Forward request
         response = requests.get(
@@ -449,7 +448,6 @@ def get_artist_profile(request):
             timeout=30
         )
 
-        print("API Response Status:", response.status_code)
 
         # 5️⃣ Handle API errors
         if response.status_code != 200:
@@ -460,7 +458,6 @@ def get_artist_profile(request):
             }, status=response.status_code)
 
         # 6️⃣ Success
-        print("API Response Data:", response.json())
         return JsonResponse(response.json(), status=response.status_code)
 
     except requests.exceptions.RequestException as e:

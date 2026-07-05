@@ -633,25 +633,36 @@ def initiate_topup_api(request):
                 'status': 'error',
                 'message': data.get('message', 'Failed to initialize payment.')
             }, status=status.HTTP_400_BAD_REQUEST)
-        
+                
+
+    # Get reference BEFORE creating the record
+        reference = data['data'].get('reference', '')
+
+        if not reference:
+            return Response({
+                'status': 'error',
+                'message': 'Paystack did not return a payment reference.'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
 
-        # Create pending top-up record
+
+        # Create pending top-up record with real reference
         CreditTopUp.objects.create(
             user=request.user,
             amount_rands=amount_rands,
             credits_added=credits_to_add,
-            # paystack_ref=data['data']['reference'],
-            payment_method='paystack',                # ← new field
+            reference=reference,          # ← real reference, never empty
+            payment_method='paystack',
             status='pending'
         )
+
 
         return Response({
             'status': 'success',
             'authorization_url': data['data']['authorization_url'],
-            'reference': data['data']['reference'],
+            'reference': reference,
         }, status=status.HTTP_200_OK)
-
+    
     except requests.exceptions.RequestException as e:
         return Response({
             'status': 'error',

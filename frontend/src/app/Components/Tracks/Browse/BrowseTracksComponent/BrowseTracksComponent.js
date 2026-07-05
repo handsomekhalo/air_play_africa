@@ -283,54 +283,56 @@ function PlayerBar({ track, audioRef, isPlaying, onPlayPause, onClose }) {
       </div>
 
       {/* Right side */}
+      {/* Right side */}
 <div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div>
-          <p style={{ margin: '0 0 4px', color: '#555', fontSize: 13, fontFamily: 'monospace' }}>
-            {formatDuration(track.duration)}
-          </p>
-          {track.bpm && (
-            <p style={{ margin: 0, color: '#444', fontSize: 11, fontFamily: "'DM Sans', sans-serif" }}>
-              {track.bpm} BPM
-            </p>
-          )}
-        </div>
+  <div>
+    <p style={{ margin: '0 0 4px', color: '#555', fontSize: 13, fontFamily: 'monospace' }}>
+      {formatDuration(track.duration)}
+    </p>
+    {track.bpm && (
+      <p style={{ margin: 0, color: '#444', fontSize: 11, fontFamily: "'DM Sans', sans-serif" }}>
+        {track.bpm} BPM
+      </p>
+    )}
+  </div>
 
+  {/* Tip button */}
+  <button
+    onClick={(e) => { e.stopPropagation(); onTip(track); }}
+    title="Tip this artist"
+    style={{
+      width: 32, height: 32, borderRadius: '50%',
+      border: `1px solid ${colors[0]}44`,
+      background: `${colors[0]}15`,
+      color: colors[0], fontSize: 14, cursor: 'pointer',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      flexShrink: 0, transition: 'all 0.15s ease',
+    }}
+    onMouseEnter={e => { e.currentTarget.style.background = `${colors[0]}30`; }}
+    onMouseLeave={e => { e.currentTarget.style.background = `${colors[0]}15`; }}
+  >
+    💸
+  </button>
 
+  {/* Share button */}
+  <button
+    onClick={(e) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(`${window.location.origin}/t/${track.id}`);
+    }}
+    title="Copy share link"
+    style={{
+      width: 32, height: 32, borderRadius: '50%',
+      border: '1px solid #2a2a2a', background: '#1a1a1a',
+      color: '#666', fontSize: 13, cursor: 'pointer',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      flexShrink: 0,
+    }}
+  >
+    🔗
+  </button>
+</div>
 
-        {/* Tip button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            navigator.clipboard.writeText(`${window.location.origin}/t/${track.id}`);
-          }}
-          title="Copy share link"
-          style={{
-            width: 32, height: 32, borderRadius: '50%',
-            border: '1px solid #2a2a2a', background: '#1a1a1a',
-            color: '#666', fontSize: 13, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          🔗
-        </button>
-        {/* <button
-          onClick={(e) => { e.stopPropagation(); onTip(track); }}
-          title="Tip this artist"
-          style={{
-            width: 32, height: 32, borderRadius: '50%',
-            border: `1px solid ${colors[0]}44`,
-            background: `${colors[0]}15`,
-            color: colors[0], fontSize: 14, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0, transition: 'all 0.15s ease',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = `${colors[0]}30`; }}
-          onMouseLeave={e => { e.currentTarget.style.background = `${colors[0]}15`; }}
-        >
-          💸
-        </button> */}
-        </div>
 
 
       {/* <div style={{ textAlign: 'right', flexShrink: 0 }}>

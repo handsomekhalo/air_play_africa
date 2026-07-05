@@ -47,6 +47,7 @@ export default function ArtistDashboardPage() {
   const [showWithdrawal, setShowWithdrawal] = useState(false);
 
 
+
   
 
 // ── Load revenue timeseries ─────────────────────────────────────
@@ -374,13 +375,13 @@ useEffect(() => {
                 key={payout.id}
                 className="flex items-center justify-between rounded-lg bg-muted/50 p-4 hover:bg-muted"
               >
-                <div>
-                  <p className="font-medium">R{parseFloat(payout.amount).toFixed(2)}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {new Date(payout.requested_at).toLocaleDateString()}
-                  </p>
-                </div>
-                <span className={`rounded-full px-3 py-1 text-xs font-medium ${
+                  <div>
+                    <p className="font-medium">R{parseFloat(payout.amount).toFixed(2)}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(payout.requested_at).toLocaleDateString()} · {payout.bank_name}
+                    </p>
+                  </div>
+                                  <span className={`rounded-full px-3 py-1 text-xs font-medium ${
                   payout.status === 'paid' ? 'bg-emerald/10 text-emerald' :
                   payout.status === 'rejected' ? 'bg-red-100 text-red-600' :
                   'bg-yellow-100 text-yellow-700'

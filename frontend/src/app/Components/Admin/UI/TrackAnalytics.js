@@ -15,7 +15,7 @@ export const TrackAnalytics = () => {
   const [tracks, setTracks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentTrack, setCurrentTrack] = useState(null);
-
+const [copied, setCopied] = useState(null);
 
   const playTrack = async (track) => {
     const res = await backendApi.get(
@@ -161,12 +161,31 @@ const trackAnalyticsData = tracks.map(t => ({
         <div className="flex-1">
           <h4 className="font-semibold">{track.title}</h4>
 
-          <button
+<button
+  onClick={() => playTrack(tracks.find(t => t.id === track.id))}
+  className="text-sm text-primary hover:underline"
+>
+  ▶ Play
+</button>
+
+{/* Share link */}
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`${window.location.origin}/t/${track.id}`);
+    setCopied(track.id);
+    setTimeout(() => setCopied(null), 2000);
+  }}
+  className="text-sm hover:underline ml-3"
+  style={{ color: copied === track.id ? '#10b981' : '#9ca3af' }}
+>
+  {copied === track.id ? '✓ Copied!' : '🔗 Share'}
+</button>
+          {/* <button
             onClick={() => playTrack(tracks.find(t => t.id === track.id))}
             className="text-sm text-primary hover:underline"
           >
             ▶ Play
-          </button>
+          </button> */}
 
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             {track.aiMood && (
@@ -189,29 +208,34 @@ const trackAnalyticsData = tracks.map(t => ({
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-  
+   <div className="grid grid-cols-3 gap-4">
+  <div>
+    <p className="text-xs text-muted-foreground">Streams</p>
+    <p className="text-lg font-bold">
+      {Number(track.streams).toLocaleString()}
+    </p>
+  </div>
 
-        <div>
-          <p className="text-xs text-muted-foreground">Earnings</p>
-          <p className="text-lg font-bold text-emerald">
-            R{Number(track.earnings).toFixed(2)}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {track.qualifying_streams} streams · R{Number(track.tip_earnings).toFixed(2)} tips
-          </p>
-        </div>
+  <div>
+    <p className="text-xs text-muted-foreground">Earnings</p>
+    <p className="text-lg font-bold text-emerald">
+      R{Number(track.earnings).toFixed(2)}
+    </p>
+    <p className="text-xs text-muted-foreground">
+      {track.qualifying_streams} streams · R{Number(track.tip_earnings).toFixed(2)} tips
+    </p>
+  </div>
 
-        <div>
-          <p className="text-xs text-muted-foreground flex items-center gap-1">
-            <TrendingUp className="h-3 w-3" />
-            Listener Score
-          </p>
-          <p className="text-lg font-bold text-gold">
-            {track.listenerScore}
-          </p>
-        </div>
-      </div>
+  <div>
+    <p className="text-xs text-muted-foreground flex items-center gap-1">
+      <TrendingUp className="h-3 w-3" />
+      Listener Score
+    </p>
+    <p className="text-lg font-bold text-gold">
+      {track.listenerScore}
+    </p>
+  </div>
+</div>
     </div>
   ))}
 </div>

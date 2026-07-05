@@ -17,15 +17,17 @@ class BaseFormSerializer(serializers.Serializer):
         """Override create method to do nothing"""
 
 
-def host_url(request):
-    """
-    This function is used to get the base url of the application.
-    """
-    protocol = request.scheme
-    host = request.get_host()
-    base_url = f"{protocol}://{host}"
-    return base_url
+# def host_url(request):
+#     """
+#     This function is used to get the base url of the application.
+#     """
+#     protocol = request.scheme
+#     host = request.get_host()
+#     base_url = f"{protocol}://{host}"
+#     return base_url
 
+def host_url(request=None):
+    return "http://127.0.0.1:8000"
 
 def api_connection(method, url, headers, data):
     """This function is used to connect to the api."""

@@ -299,6 +299,22 @@ function PlayerBar({ track, audioRef, isPlaying, onPlayPause, onClose }) {
 
         {/* Tip button */}
         <button
+          onClick={(e) => {
+            e.stopPropagation();
+            navigator.clipboard.writeText(`${window.location.origin}/t/${track.id}`);
+          }}
+          title="Copy share link"
+          style={{
+            width: 32, height: 32, borderRadius: '50%',
+            border: '1px solid #2a2a2a', background: '#1a1a1a',
+            color: '#666', fontSize: 13, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          🔗
+        </button>
+        {/* <button
           onClick={(e) => { e.stopPropagation(); onTip(track); }}
           title="Tip this artist"
           style={{
@@ -313,7 +329,7 @@ function PlayerBar({ track, audioRef, isPlaying, onPlayPause, onClose }) {
           onMouseLeave={e => { e.currentTarget.style.background = `${colors[0]}15`; }}
         >
           💸
-        </button>
+        </button> */}
         </div>
 
 
@@ -347,7 +363,7 @@ function PlayerBar({ track, audioRef, isPlaying, onPlayPause, onClose }) {
 // ─── Main Component ──────────────────────────────────────────────
 
 const BrowseTracksComponent = () => {
-  // useAuthGuard('/listener/login', 'Listener');
+  useAuthGuard('/listener/login', 'Listener');
   const [tracks, setTracks]         = useState([]);
   const [filtered, setFiltered]     = useState([]);
   const [loading, setLoading]       = useState(true);

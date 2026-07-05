@@ -299,16 +299,13 @@ def record_stream_api(request):
             
             # Update merit score
             # Increment play_count on the track
+            track = stream.track   # ← move this up first
             track.play_count = (track.play_count or 0) + 1
-            track.save(update_fields=['play_count', 'merit_score'])
-            track = stream.track
             avg_time = track.streams.aggregate(Avg('listen_time'))['listen_time__avg'] or 0
             unique_listeners = track.streams.values('session_id').distinct().count()
-            
-            # Check if tips relation exists
             tips_count = track.tips.count() if hasattr(track, 'tips') else 0
-            
             track.merit_score = (unique_listeners * avg_time) + tips_count
+            track.save(update_fields=['play_count', 'merit_score'])
             # track.save(update_fields=['merit_score'])
             
             return Response({
@@ -902,6 +899,8 @@ def get_my_withdrawals_api(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def admin_list_withdrawals_api(request):
+
+    print(f"🔍 User: {request.user.email} | Type: {request.user.user_type.name}")
     if request.user.user_type.name != 'Admin':
         return Response({'status': 'error', 'message': 'Unauthorized'}, status=403)
 
@@ -994,7 +993,7 @@ def get_artist_revenue_timeseries_api(request):
     # Tips per day (artist_amount, post-fee)
     tip_qs = (
         Tip.objects
-        .filter(track_id__in=track_ids, timestamp=start_date)
+        .filter(track_id__in=track_ids, timestamp__date__gte=start_date)
         .annotate(day=TruncDate('timestamp'))
         .values('day')
         .annotate(tip_total=Sum('artist_amount'))
@@ -1013,7 +1012,6 @@ def get_artist_revenue_timeseries_api(request):
             # 'downloads': 0,  # not tracked yet — placeholder until download feature exists
         })
 
-        print(f"[Revenue Timeseries] {day}: streams={streams_by_day.get(day, 0)}, tips={tips_by_day.get(day, 0)}")
     return Response({'status': 'success', 'data': result}, status=200)
 
 
@@ -1063,9 +1061,36 @@ def get_artist_track_earnings_api(request):
             'ai_mood':            track.ai_mood or '',
         })
 
-        print(f"[Track Earnings] {track.title}: qualifying_streams={qualifying_streams}, stream_earnings={stream_earnings}, tip_earnings={tip_earnings}, total_earnings={total_earnings}")
-
     return Response({
         'status': 'success',
         'data': result
+    }, status=200)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_public_track_api(request, track_id):
+    """
+    Public track detail for share page.
+    No auth required — returns safe public fields only.
+    """
+    track = get_object_or_404(Track, id=track_id, status='ready')
+    artist = track.artist
+
+    return Response({
+        'status': 'success',
+        'data': {
+            'id':              track.id,
+            'title':           track.title,
+            'artist_name':     f"{artist.user.first_name} {artist.user.last_name}",
+            'artist_id':       artist.id,
+            'genre':           track.ai_genre or track.genre or '',
+            'mood':            track.ai_mood or '',
+            'description':     track.ai_description or '',
+            'cover_image_url': track.cover_image_url or '',
+            'duration':        track.duration or 0,
+            'bpm':             track.bpm or None,
+            'play_count':      track.play_count or 0,
+            'upload_date':     track.upload_date.isoformat(),
+        }
     }, status=200)

@@ -462,9 +462,10 @@ def get_my_withdrawals(request):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
+
+
 @csrf_exempt
 def admin_list_withdrawals(request):
-    """Proxy — admin views all withdrawal requests, optional ?status= filter."""
     if request.method != 'GET':
         return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
     try:
@@ -477,22 +478,23 @@ def admin_list_withdrawals(request):
         if not token:
             return JsonResponse({'status': 'error', 'message': 'Authorization token required.'}, status=401)
 
-        url = f"{host_url(request)}{reverse_lazy('admin_list_withdrawals_api')}"
+        url = f"{host_url()}{reverse_lazy('admin_list_withdrawals_api')}"
+        print(f"🔹 Admin List Withdrawals → {url}")
 
-        # Forward query params (e.g. ?status=pending)
         query_params = request.GET.urlencode()
         if query_params:
             url = f"{url}?{query_params}"
 
         response = requests.get(url, headers={'Authorization': f'Token {token}'}, timeout=30)
         return JsonResponse(response.json(), status=response.status_code)
+
     except Exception as e:
+        print(f"❌ admin_list_withdrawals error: {e}")  # ← this will show the real cause
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
 @csrf_exempt
 def admin_process_withdrawal(request, withdrawal_id):
-    """Proxy — admin approves/rejects/marks paid a withdrawal."""
     if request.method != 'PATCH':
         return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
     try:
@@ -506,16 +508,18 @@ def admin_process_withdrawal(request, withdrawal_id):
             return JsonResponse({'status': 'error', 'message': 'Authorization token required.'}, status=401)
 
         body = json.loads(request.body or '{}')
-        url = f"{host_url(request)}{reverse_lazy('admin_process_withdrawal_api', kwargs={'withdrawal_id': withdrawal_id})}"
+        url = f"{host_url()}{reverse_lazy('admin_process_withdrawal_api', kwargs={'withdrawal_id': withdrawal_id})}"
+        print(f"🔹 Admin Process Withdrawal → {url}")
+
         response = requests.patch(url, json=body, headers={
             'Authorization': f'Token {token}',
             'Content-Type': 'application/json',
         }, timeout=30)
         return JsonResponse(response.json(), status=response.status_code)
+
     except Exception as e:
+        print(f"❌ admin_process_withdrawal error: {e}")
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
-
-
 
 @csrf_exempt
 def get_artist_revenue_timeseries(request):

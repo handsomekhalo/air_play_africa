@@ -37,7 +37,8 @@ urlpatterns = [
     path('get_my_withdrawals_api/', views.get_my_withdrawals_api, name='get_my_withdrawals_api'),
     path('admin_process_withdrawal_api/<int:withdrawal_id>/', views.admin_process_withdrawal_api, name='admin_process_withdrawal_api'),
     path('get_artist_revenue_timeseries_api/', views.get_artist_revenue_timeseries_api, name='get_artist_revenue_timeseries_api'),
-    path('get_artist_track_earnings_api/', views.get_artist_track_earnings_api, name='get_artist_track_earnings_api')
-
+    path('get_artist_track_earnings_api/', views.get_artist_track_earnings_api, name='get_artist_track_earnings_api'),
+    path('get_public_track_api/<int:track_id>/', views.get_public_track_api, name='get_public_track_api'),
+    path('admin_list_withdrawals_api/', views.admin_list_withdrawals_api, name='admin_list_withdrawals_api'),
     ]
     

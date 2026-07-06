@@ -440,18 +440,18 @@ def update_stream_api(request, session_id):
             stream.save(update_fields=['listen_time'])
 
             # Credit artist exactly once — when stream first crosses the threshold
-            if not previously_qualified and now_qualifies:
-                try:
-                    artist   = stream.track.artist
-                    earnings = ArtistEarnings.objects.select_for_update().get_or_create(artist=artist)[0]
-                    rate     = Decimal(str(constants.STREAM_ARTIST_RATE))
-                    earnings.balance_credits += rate
-                    earnings.total_earned    += rate
-                    earnings.save(update_fields=['balance_credits', 'total_earned'])
-                    print(f"✅ Stream credit: R{rate} → {artist.user.first_name} for track '{stream.track.title}'")
-                except Exception as e:
-                    # Don't let earnings failure break the stream update
-                    print(f"⚠️ Earnings credit failed: {e}")
+            # if not previously_qualified and now_qualifies:
+            #     try:
+            #         artist   = stream.track.artist
+            #         earnings = ArtistEarnings.objects.select_for_update().get_or_create(artist=artist)[0]
+            #         rate     = Decimal(str(constants.STREAM_ARTIST_RATE))
+            #         earnings.balance_credits += rate
+            #         earnings.total_earned    += rate
+            #         earnings.save(update_fields=['balance_credits', 'total_earned'])
+            #         print(f"✅ Stream credit: R{rate} → {artist.user.first_name} for track '{stream.track.title}'")
+            #     except Exception as e:
+            #         # Don't let earnings failure break the stream update
+            #         print(f"⚠️ Earnings credit failed: {e}")
 
             # Recalculate merit score
             track = stream.track

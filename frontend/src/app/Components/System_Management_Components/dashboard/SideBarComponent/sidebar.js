@@ -12,47 +12,76 @@ const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   const navItems = [
-    {
-      title: "Overview",
-      links: [
-        {
-          href: "/admin/dashboard",
-          icon: "bx bx-home",
-          label: "Dashboard",
-        },
-      ],
-    },
-    {
-      title: "Users",
-      links: [
-        {
-          href: "/admin/users/artists",
-          icon: "bx bx-music",
-          label: "Artists",
-        },
-        {
-          href: "/admin/users/admins",
-          icon: "bx bx-shield",
-          label: "Admins",
-        },
-      ],
-    },
-    {
-      title: "Account",
-      links: [
-        {
-          href: "/profile",
-          icon: "bx bx-user-circle",
-          label: "Profile",
-        },
-        {
-          href: "/logout",
-          icon: "bx bx-log-out",
-          label: "Logout",
-        },
-      ],
-    },
-  ];
+  {
+    title: "Overview",
+    links: [
+      { href: "/admin/dashboard", icon: "bx bx-home", label: "Dashboard" },
+    ],
+  },
+  {
+    title: "Users",
+    links: [
+      { href: "/admin/users/artists", icon: "bx bx-music", label: "Artists" },
+      { href: "/admin/users/admins", icon: "bx bx-shield", label: "Admins" },
+    ],
+  },
+  {
+    title: "Content",
+    links: [
+      { href: "/admin/tracks", icon: "bx bx-film", label: "Track Moderation" },
+    ],
+  },
+  {
+    title: "Account",
+    links: [
+      { href: "/profile", icon: "bx bx-user-circle", label: "Profile" },
+      { href: "/logout", icon: "bx bx-log-out", label: "Logout" },
+    ],
+  },
+];
+  // const navItems = [
+  //   {
+  //     title: "Overview",
+  //     links: [
+  //       {
+  //         href: "/admin/dashboard",
+  //         icon: "bx bx-home",
+  //         label: "Dashboard",
+  //       },
+  //     ],
+  //   },
+  //   {
+  //     title: "Users",
+  //     links: [
+  //       {
+  //         href: "/admin/users/artists",
+  //         icon: "bx bx-music",
+  //         label: "Artists",
+  //       },
+  //       {
+  //         href: "/admin/users/admins",
+  //         icon: "bx bx-shield",
+  //         label: "Admins",
+  //       },
+  //     ],
+  //   },
+  //   {
+  //     title: "Account",
+  //     links: [
+  //       {
+  //         href: "/profile",
+  //         icon: "bx bx-user-circle",
+  //         label: "Profile",
+  //       },
+  //       {
+  //         href: "/logout",
+  //         icon: "bx bx-log-out",
+  //         label: "Logout",
+  //       },
+  //     ],
+  //   },
+    
+  // ];
 
   return (
     <>

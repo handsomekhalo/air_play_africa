@@ -307,14 +307,25 @@ useEffect(() => {
             icon={DollarSign}
             variant="gold"
           />
+
           <MetricCard
+        title="Stream Revenue"
+        value="Beta"
+        change="Activates when royalty pool is funded"
+        changeType="neutral"
+        icon={Music}
+        variant="emerald"
+      />
+
+          
+          {/* <MetricCard
             title="Available Balance"
             value={earningsLoading ? '...' : `R${parseFloat(earnings?.balance_credits || 0).toFixed(2)}`}
             change="Ready to withdraw"
             changeType="neutral"
             icon={Music}
             variant="emerald"
-          />
+          /> */}
           <MetricCard
             title="Total Withdrawn"
             value={earningsLoading ? '...' : `R${parseFloat(earnings?.total_withdrawn || 0).toFixed(2)}`}

@@ -713,3 +713,34 @@ def toggle_user_active(request, user_id):
     response = requests.patch(api_url, headers=headers, timeout=30)
 
     return JsonResponse(response.json(), status=response.status_code)
+
+
+@csrf_exempt
+def get_admin_overview(request):
+    """Proxy — admin platform overview metrics."""
+    if request.method != 'GET':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+    try:
+        auth_header = request.headers.get('Authorization', '')
+        token = None
+        if auth_header.startswith('Token '):
+            token = auth_header.split('Token ')[-1]
+        elif auth_header.startswith('Bearer '):
+            token = auth_header.split('Bearer ')[-1]
+        if not token:
+            return JsonResponse({'status': 'error', 'message': 'Authorization token required.'}, status=401)
+
+        url_path = reverse_lazy('get_admin_overview_api')
+        api_url  = f"{host_url()}{url_path}"
+        print(f"🔹 Admin Overview → {api_url}")
+
+        response = requests.get(
+            api_url,
+            headers={'Authorization': f'Token {token}'},
+            timeout=30
+        )
+        return JsonResponse(response.json(), status=response.status_code)
+
+    except Exception as e:
+        print(f"❌ get_admin_overview error: {e}")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

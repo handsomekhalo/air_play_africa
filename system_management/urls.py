@@ -18,7 +18,8 @@ urlpatterns = [
     path('get_all_admins/', views.get_all_admins, name='get_all_admins'),
     path('get_all_artists/', views.get_all_artists, name='get_all_artists'),
     path('toggle_user_active/<int:user_id>/', views.toggle_user_active, name='toggle_user_active'),
-    
+    path('get_admin_overview/', views.get_admin_overview, name='get_admin_overview'),
+
     # path('login/', views.login, name='login'),
     # path('get_roles/', views.get_roles, name='get_roles'),
     # path('get_all_users/', views.get_all_users, name='get_all_users'),

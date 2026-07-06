@@ -33,13 +33,10 @@ from django.contrib.auth import get_user_model
 from system_management.models import UserType
 from system_management.permissions import IsAdminUserType
 User = get_user_model()
-
-
-
-
-
+from django.utils.timezone import now
+from datetime import timedelta
+from media_streaming_management.models import Stream, Track
 from rest_framework.decorators import api_view, permission_classes
-
 from rest_framework import (
     status,
     permissions,
@@ -718,3 +715,45 @@ def register_user_api(request):
     }, status=status.HTTP_201_CREATED)
  
  
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_admin_overview_api(request):
+    """Platform-wide metrics for admin dashboard."""
+    if request.user.user_type.name != 'Admin':
+        return Response({'status': 'error', 'message': 'Unauthorized'}, status=403)
+
+
+    today = now().date()
+    start_date = today - timedelta(days=6)
+
+    total_artists  = Artist.objects.count()
+    active_artists = Artist.objects.filter(is_onboarded=True).count()
+    streams_7_days = Stream.objects.filter(timestamp__date__gte=start_date).count()
+    flagged_tracks = Track.objects.filter(status='failed').count()
+
+    organic_streams = Stream.objects.filter(listen_time__gte=30).count()
+    total_streams   = Stream.objects.count()
+    organic_pct     = round((organic_streams / total_streams * 100), 1) if total_streams > 0 else 100.0
+
+    if flagged_tracks == 0:
+        integrity_status  = 'Healthy'
+        integrity_message = f'{organic_pct}% of streams verified as organic. All systems operating normally.'
+    elif flagged_tracks < 5:
+        integrity_status  = 'Good'
+        integrity_message = f'{flagged_tracks} tracks flagged for review. {organic_pct}% organic stream rate.'
+    else:
+        integrity_status  = 'Needs Attention'
+        integrity_message = f'{flagged_tracks} tracks require moderation. Review flagged content.'
+
+    return Response({
+        'status': 'success',
+        'data': {
+            'totalArtists':    total_artists,
+            'activeArtists':   active_artists,
+            'streamsLast7Days': streams_7_days,
+            'flaggedTracks':   flagged_tracks,
+            'integrityStatus': integrity_status,
+            'integrityMessage': integrity_message,
+        }
+    }, status=200)

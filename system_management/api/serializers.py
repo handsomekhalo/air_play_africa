@@ -399,7 +399,7 @@ class AdminCreateSerializer(serializers.ModelSerializer):
             first_name=first_name,
             last_name=last_name,
             user_type=admin_type,
-            user_created_by=request_user,
+            # user_created_by=request_user,
             is_active=True,
             is_staff=True
         )

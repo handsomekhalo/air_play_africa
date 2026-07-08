@@ -26,6 +26,10 @@ urlpatterns = [
     path('get_all_artists_api/', views.get_all_artists_api, name="get_all_artists_api"),
     path('toggle_user_active_api/<int:user_id>/', views.toggle_user_active_api, name="toggle_user_active_api"),
     path('get_admin_overview_api/', views.get_admin_overview_api, name='get_admin_overview_api'),
+    path('create_admin_api/', views.create_admin_api, name='create_admin_api'),
+    path('get_admin_profile_api/', views.get_admin_profile_api, name='get_admin_profile_api'),
+    path('logout_api/', views.logout_api, name='logout_api'),
+    
     # path('get_listener_profile_api/<int:listener_id>/', views.get_listener_profile_api, name="get_listener_profile_api"),
 
     # path('get_artist_profile_api/<int:artist_id>/', views.ystem_management_api/artist_onboarding_step_1_api/, name="get_artist_profile_api"),

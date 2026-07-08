@@ -35,15 +35,35 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('csrfToken', csrf || '');
   };
 
-  const logout = () => {
+  // const logout = () => {
+  //   setAuthToken(null);
+  //   setCSRFToken(null);
+  //   localStorage.removeItem('authToken');
+  //   localStorage.removeItem('csrfToken');
+  //   localStorage.removeItem('user');
+  //   router.push('/');
+  // };
+const logout = async () => {
+  try {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      // Delete token server-side first
+      await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/system_management/logout/`, {
+        method: 'POST',
+        headers: { 'Authorization': `Token ${token}` }
+      });
+    }
+  } catch {
+    // Even if server call fails, clear client-side
+  } finally {
     setAuthToken(null);
     setCSRFToken(null);
     localStorage.removeItem('authToken');
     localStorage.removeItem('csrfToken');
     localStorage.removeItem('user');
     router.push('/');
-  };
-
+  }
+};
   const navigate = (path) => {
     router.push(path);
   };

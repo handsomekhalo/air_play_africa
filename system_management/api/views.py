@@ -195,6 +195,7 @@ def create_admin_api(request):
         }, status=status.HTTP_403_FORBIDDEN)
         
     try:
+        print("🟢 Admin API FOR creating new admin accounts called")
         # Use AdminCreateSerializer with context={'request': request}
         serializer = AdminCreateSerializer(
             data=request.data,
@@ -203,9 +204,12 @@ def create_admin_api(request):
         
         # call serializer.is_valid(raise_exception=True)
         serializer.is_valid(raise_exception=True)
+        print("🟢 Admin API: Validated data:", serializer.validated_data)
         
         # then serializer.save() (saves the Admin User object)
         user = serializer.save()
+
+        print("🟢 Admin API: Created new admin user:", user)
         
         # and return UserModelSerializer(user).data for response.
         return Response(
@@ -757,3 +761,24 @@ def get_admin_overview_api(request):
             'integrityMessage': integrity_message,
         }
     }, status=200)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminUserType])
+def get_admin_profile_api(request):
+    """Returns the logged-in admin's own profile."""
+    return Response({
+        'status': 'success',
+        'data': UserModelSerializer(request.user).data
+    }, status=200)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def logout_api(request):
+    """Deletes the user's auth token — invalidates all sessions."""
+    try:
+        request.user.auth_token.delete()
+        return Response({'status': 'success', 'message': 'Logged out successfully.'}, status=200)
+    except Exception:
+        return Response({'status': 'success', 'message': 'Logged out.'}, status=200)

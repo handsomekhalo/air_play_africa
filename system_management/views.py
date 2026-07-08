@@ -744,3 +744,150 @@ def get_admin_overview(request):
     except Exception as e:
         print(f"❌ get_admin_overview error: {e}")
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    
+
+@csrf_exempt
+def get_all_admins(request):
+    if request.method != 'GET':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+    try:
+        auth_header = request.headers.get('Authorization', '')
+        token = None
+        if auth_header.startswith('Token '): token = auth_header.split('Token ')[-1]
+        elif auth_header.startswith('Bearer '): token = auth_header.split('Bearer ')[-1]
+        if not token:
+            return JsonResponse({'status': 'error', 'message': 'Authorization token required.'}, status=401)
+        url = f"{host_url()}{reverse_lazy('get_all_admins_api')}"
+        response = requests.get(url, headers={'Authorization': f'Token {token}'}, timeout=30)
+        return JsonResponse(response.json(), status=response.status_code)
+    except Exception as e:
+        print(f"❌ get_all_admins error: {e}")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@csrf_exempt
+def create_admin(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+    try:
+        auth_header = request.headers.get('Authorization', '')
+        token = None
+        if auth_header.startswith('Token '): token = auth_header.split('Token ')[-1]
+        elif auth_header.startswith('Bearer '): token = auth_header.split('Bearer ')[-1]
+        if not token:
+            return JsonResponse({'status': 'error', 'message': 'Authorization token required.'}, status=401)
+        body = json.loads(request.body or '{}')
+        url = f"{host_url()}{reverse_lazy('create_admin_api')}"
+        response = requests.post(url, json=body, headers={
+            'Authorization': f'Token {token}',
+            'Content-Type': 'application/json',
+        }, timeout=30)
+        return JsonResponse(response.json(), status=response.status_code)
+    except Exception as e:
+        print(f"❌ create_admin error: {e}")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@csrf_exempt
+def update_admin_profile(request):
+    """Proxy — admin updates their own profile."""
+    if request.method not in ['PUT', 'PATCH']:
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+    try:
+        auth_header = request.headers.get('Authorization', '')
+        token = None
+        if auth_header.startswith('Token '): token = auth_header.split('Token ')[-1]
+        elif auth_header.startswith('Bearer '): token = auth_header.split('Bearer ')[-1]
+        if not token:
+            return JsonResponse({'status': 'error', 'message': 'Authorization token required.'}, status=401)
+
+        body = json.loads(request.body or '{}')
+        url  = f"{host_url()}{reverse_lazy('update_admin_profile_api')}"
+        print(f"🔹 Update Admin Profile → {url}")
+
+        response = requests.request(
+            method=request.method,
+            url=url,
+            json=body,
+            headers={'Authorization': f'Token {token}', 'Content-Type': 'application/json'},
+            timeout=30
+        )
+        return JsonResponse(response.json(), status=response.status_code)
+    except Exception as e:
+        print(f"❌ update_admin_profile error: {e}")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@csrf_exempt
+def create_admin(request):
+    """Proxy — create a new admin user."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+    try:
+        auth_header = request.headers.get('Authorization', '')
+        token = None
+        if auth_header.startswith('Token '): token = auth_header.split('Token ')[-1]
+        elif auth_header.startswith('Bearer '): token = auth_header.split('Bearer ')[-1]
+        if not token:
+            return JsonResponse({'status': 'error', 'message': 'Authorization token required.'}, status=401)
+
+        body = json.loads(request.body or '{}')
+        url  = f"{host_url()}{reverse_lazy('create_admin_api')}"
+        print(f"🔹 Create Admin → {url}")
+
+        response = requests.post(
+            url, json=body,
+            headers={'Authorization': f'Token {token}', 'Content-Type': 'application/json'},
+            timeout=30
+        )
+        return JsonResponse(response.json(), status=response.status_code)
+    except Exception as e:
+        print(f"❌ create_admin error: {e}")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    
+
+@csrf_exempt
+def get_admin_profile(request):
+    """Proxy — get logged-in admin's own profile."""
+    if request.method != 'GET':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+    try:
+        auth_header = request.headers.get('Authorization', '')
+        token = None
+        if auth_header.startswith('Token '): token = auth_header.split('Token ')[-1]
+        elif auth_header.startswith('Bearer '): token = auth_header.split('Bearer ')[-1]
+        if not token:
+            return JsonResponse({'status': 'error', 'message': 'Authorization token required.'}, status=401)
+
+        url = f"{host_url()}{reverse_lazy('get_admin_profile_api')}"
+        response = requests.get(
+            url,
+            headers={'Authorization': f'Token {token}'},
+            timeout=30
+        )
+        return JsonResponse(response.json(), status=response.status_code)
+    except Exception as e:
+        print(f"❌ get_admin_profile error: {e}")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    
+@csrf_exempt
+def logout_view(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+    try:
+        auth_header = request.headers.get('Authorization', '')
+        token = None
+        if auth_header.startswith('Token '): token = auth_header.split('Token ')[-1]
+        elif auth_header.startswith('Bearer '): token = auth_header.split('Bearer ')[-1]
+        if not token:
+            return JsonResponse({'status': 'success'}, status=200)  # already logged out
+
+        url = f"{host_url()}{reverse_lazy('logout_api')}"
+        requests.post(
+            url,
+            headers={'Authorization': f'Token {token}'},
+            timeout=10
+        )
+        return JsonResponse({'status': 'success'}, status=200)
+    except Exception as e:
+        # Even if backend call fails, frontend will clear localStorage
+        return JsonResponse({'status': 'success'}, status=200)

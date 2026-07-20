@@ -197,25 +197,36 @@ class UpdateArtistProfileSerializer(serializers.ModelSerializer):
 
 
 class UpdateListenerProfileSerializer(serializers.ModelSerializer):
-    """
-    Serializer for Listener profile update (updates base User fields).
-    We use UserModelSerializer fields for the update data structure.
-    """
-    first_name = serializers.CharField(required=False)
-    last_name = serializers.CharField(required=False)
-    # Exclude fields like email and password for security/separate flow
+    first_name   = serializers.CharField(required=False)
+    last_name    = serializers.CharField(required=False)
+    phone_number = serializers.CharField(required=False, allow_blank=True)
+    location     = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name']
-        
-    def update(self, instance, validated_data):
-        # Update User fields directly
-        instance.first_name = validated_data.get('first_name', instance.first_name)
-        instance.last_name = validated_data.get('last_name', instance.last_name)
-        instance.save()
-        return instance
+        fields = ['first_name', 'last_name', 'phone_number', 'location']
 
+    def update(self, instance, validated_data):
+        from system_management.models import Profile
+
+        # Update User fields
+        instance.first_name = validated_data.get('first_name', instance.first_name)
+        instance.last_name  = validated_data.get('last_name',  instance.last_name)
+        instance.save(update_fields=['first_name', 'last_name'])
+
+        # Update Profile fields
+        phone_number = validated_data.get('phone_number')
+        location     = validated_data.get('location')
+
+        if phone_number is not None or location is not None:
+            profile, _ = Profile.objects.get_or_create(user=instance)
+            if phone_number is not None:
+                profile.phone_number = phone_number
+            if location is not None:
+                profile.location = location
+            profile.save()
+
+        return instance
 # In your serializers.py
 
 class AdminUpdateSerializer(serializers.ModelSerializer):

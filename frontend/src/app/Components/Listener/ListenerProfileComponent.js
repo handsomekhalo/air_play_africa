@@ -45,20 +45,34 @@ const ListenerProfileComponent = () => {
 
   // ── Load profile on mount ─────────────────────────────────────
   // useEffect(() => {
-    useEffect(() => {
+useEffect(() => {
   const fetchProfile = async () => {
     try {
+      const res = await backendApi.get('/system_management/get_listener_profile/');
+      if (res.data.status === 'success') {
+        const data = res.data.data;
+        setProfile(data);
+        setForm(flattenProfile(data));
+        // Keep localStorage in sync
+        localStorage.setItem('user', JSON.stringify(data));
+      } else {
+        throw new Error(res.data.message);
+      }
+    } catch (err) {
+      console.error('Failed to fetch listener profile:', err);
+      // Graceful fallback to localStorage
       const stored = localStorage.getItem('user');
       if (stored) {
-        const user = JSON.parse(stored);
-        setProfile(user);
-        setForm(flattenProfile(user));
+        try {
+          const user = JSON.parse(stored);
+          setProfile(user);
+          setForm(flattenProfile(user));
+        } catch {
+          setError('Could not load profile.');
+        }
       } else {
         setError('Could not load profile.');
       }
-    } catch (err) {
-      console.error('Failed to load profile:', err);
-      setError('Could not load profile.');
     } finally {
       setLoading(false);
     }

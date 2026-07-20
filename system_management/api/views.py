@@ -6,7 +6,7 @@ from requests import Response
 
 from media_streaming_management.models import Artist
 from system_management import constants
-from system_management.api.serializers import  AdminCreateSerializer, AdminUpdateSerializer, AdminUserListSerializer, ArtistCreateSerializer, ArtistOnboardingSerializer, ArtistSerializer, GetAlltUserModelSerializer, GetArtistProfileSerializer, GetArtistSerializer, ListenerCreateSerializer, ListenerRegisterSerializer, UpdateArtistProfileSerializer, UserModelSerializer, UserTypeModelSerializer
+from system_management.api.serializers import  AdminCreateSerializer, AdminUpdateSerializer, AdminUserListSerializer, ArtistCreateSerializer, ArtistOnboardingSerializer, ArtistSerializer, GetAlltUserModelSerializer, GetArtistProfileSerializer, GetArtistSerializer, ListenerCreateSerializer, ListenerRegisterSerializer, UpdateArtistProfileSerializer, UpdateListenerProfileSerializer, UserModelSerializer, UserTypeModelSerializer
 
 from system_management import constants
 from system_management.api.serializers import  UserModelSerializer
@@ -430,7 +430,7 @@ def update_profile_api(request):
     elif user_type_name == 'Listener':
         # Instance to update is the base User object itself
         instance_to_update = user
-        SerializerClass = ListenerCreateSerializer
+        SerializerClass = UpdateListenerProfileSerializer
         
     elif user_type_name == 'Admin' or user_type_name is None:
         return Response({
@@ -782,3 +782,24 @@ def logout_api(request):
         return Response({'status': 'success', 'message': 'Logged out successfully.'}, status=200)
     except Exception:
         return Response({'status': 'success', 'message': 'Logged out.'}, status=200)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_listener_profile_api(request):
+    if request.user.user_type.name != 'Listener':
+        return Response({'status': 'error', 'message': 'Unauthorized'}, status=403)
+    
+    from system_management.models import Profile
+    user_data = UserModelSerializer(request.user).data
+    
+    # Enrich with Profile fields if profile exists
+    try:
+        profile = Profile.objects.get(user=request.user)
+        user_data['phone_number'] = profile.phone_number or ''
+        user_data['location']     = profile.location or ''
+    except Profile.DoesNotExist:
+        user_data['phone_number'] = ''
+        user_data['location']     = ''
+    
+    return Response({'status': 'success', 'data': user_data}, status=200)

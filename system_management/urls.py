@@ -25,6 +25,7 @@ urlpatterns = [
     path('create_admin/', views.create_admin, name='create_admin'),
     path('get_admin_profile/', views.get_admin_profile, name='get_admin_profile'),
     path('logout/', views.logout_view, name='logout_view'),
+    path('get_listener_profile/', views.get_listener_profile, name='get_listener_profile'),
     # path('login/', views.login, name='login'),
     # path('get_roles/', views.get_roles, name='get_roles'),
     # path('get_all_users/', views.get_all_users, name='get_all_users'),

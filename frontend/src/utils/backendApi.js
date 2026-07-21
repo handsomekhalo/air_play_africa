@@ -9,6 +9,8 @@ const backendApi = axios.create({
     "Content-Type": "application/json",
   },
 });
+
+//
 // const backendApi = axios.create({
 //   // baseURL: 'http://52.14.111.23',
 //   baseURL: "http://127.0.0.1:8000",

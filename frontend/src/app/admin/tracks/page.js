@@ -5,8 +5,8 @@ import { useAuth } from '../../../../AuthContext';
 import backendApi from '@/utils/backendApi';
 import Sidebar from '@/app/Components/System_Management_Components/dashboard/SideBarComponent/sidebar';
 import { Music, CheckCircle, XCircle, Clock, Filter } from 'lucide-react';
-  import { useAuthGuard } from '../../../../utils/useAuthGuard';
-
+  // import { useAuthGuard } from '../../../../utils/useAuthGuard';
+import { useAuthGuard } from '@/utils/useAuthGuard';
 
 function formatDuration(seconds) {
   if (!seconds) return '0:00';

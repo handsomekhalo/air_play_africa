@@ -5,6 +5,8 @@ import { useAuth } from '../../../../AuthContext';
 import backendApi from '@/utils/backendApi';
 import Sidebar from '@/app/Components/System_Management_Components/dashboard/SideBarComponent/sidebar';
 import { Music, CheckCircle, XCircle, Clock, Filter } from 'lucide-react';
+  import { useAuthGuard } from '../../../../utils/useAuthGuard';
+
 
 function formatDuration(seconds) {
   if (!seconds) return '0:00';
@@ -20,6 +22,7 @@ const STATUS_CONFIG = {
 };
 
 function TrackRow({ track, onAction, actionLoading }) {
+  
   const [expanded, setExpanded] = useState(false);
   const [notes, setNotes]       = useState('');
   const s = STATUS_CONFIG[track.status] || STATUS_CONFIG.failed;
@@ -184,6 +187,8 @@ function TrackRow({ track, onAction, actionLoading }) {
 }
 
 export default function AdminTracksPage() {
+  useAuthGuard('/login', 'Admin');
+
   const { authToken } = useAuth();
 
   const [tracks, setTracks]           = useState([]);

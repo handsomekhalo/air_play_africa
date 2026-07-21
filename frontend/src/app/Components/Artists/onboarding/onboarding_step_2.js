@@ -70,12 +70,20 @@ export default function StepTwoOnboarding() {
       </button>
 
       {/* Optional skip */}
-      <button
+      {/* <button
         onClick={() => router.push('/artist/dashboard')}
         className="w-full text-sm text-gray-500 underline"
       >
         Skip for now
-      </button>
+      </button> */}
+      <button
+  onClick={submit}  // ← same as finish, wallet is already '' so it sends null
+  className="w-full text-sm text-gray-500 underline"
+>
+  Skip for now
+</button>
+
+
     </div>
   );
 }

@@ -12,6 +12,8 @@ import UploadFileComponent from "../Artists/UploadTrack/UploadFileComponent";
 // import UploadPage from "../Artists/uploadFile";
 import UploadPage from "../Artists/UploadTrack/uploadFile";
 import ProfileModal from "../../Profile/profile_modall";
+import { getCsrfToken } from "../../../utils/csrf";
+
 import {
   DollarSign,
   TrendingUp,
@@ -45,6 +47,8 @@ export default function ArtistDashboardPage() {
   const [revenueData, setRevenueData] = useState([]);
   const [revenueLoading, setRevenueLoading] = useState(true);
   const [showWithdrawal, setShowWithdrawal] = useState(false);
+  const [tips, setTips]         = useState([]);
+  const [tipsLoading, setTipsLoading] = useState(true);
 
 
 
@@ -69,6 +73,26 @@ useEffect(() => {
     }
   };
   fetchRevenue();
+}, []);
+
+
+
+useEffect(() => {
+  const fetchTips = async () => {
+    try {
+      const csrfToken = await getCsrfToken();
+      const res = await backendApi.get(
+        '/media_streaming_management/get_artist_tips/',
+        { headers: { "X-CSRFToken": csrfToken } }
+      );
+      if (res.data.status === 'success') setTips(res.data.data);
+    } catch (err) {
+      console.error('Failed to load tips:', err);
+    } finally {
+      setTipsLoading(false);
+    }
+  };
+  fetchTips();
 }, []);
 
   // Mock data (replace later with API calls)
@@ -362,6 +386,54 @@ useEffect(() => {
         {/* Track Analytics */}
         {/* <TrackAnalytics tracks={tracks} /> */}
         <TrackAnalytics />
+
+        {/* Tips History */}
+<div className="mt-8 rounded-xl border border-border bg-card p-6">
+  <div className="flex items-center justify-between mb-6">
+    <h3 className="flex items-center gap-2 text-xl font-semibold">
+      <TrendingUp className="h-5 w-5 text-coral" />
+      Tips Received
+    </h3>
+    <span className="text-sm text-muted-foreground">
+      {tips.length} tip{tips.length !== 1 ? 's' : ''} total
+    </span>
+  </div>
+
+  {tipsLoading ? (
+    <p className="text-sm text-muted-foreground">Loading tips…</p>
+  ) : tips.length === 0 ? (
+    <p className="text-sm text-muted-foreground">No tips received yet.</p>
+  ) : (
+    <div className="space-y-3">
+      {tips.map(tip => (
+        <div
+          key={tip.id}
+          className="flex items-center justify-between rounded-lg bg-muted/50 p-4 hover:bg-muted"
+        >
+          <div>
+            <p className="font-medium">
+              R{parseFloat(tip.artist_amount).toFixed(2)}
+              <span className="text-sm text-muted-foreground ml-2">
+                from {tip.tipper_name}
+              </span>
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {tip.track_title} · {new Date(tip.timestamp).toLocaleDateString()}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground">
+              R{parseFloat(tip.credits_amount).toFixed(2)} tipped
+            </p>
+            <p className="text-xs text-muted-foreground">
+              R{parseFloat(tip.platform_fee).toFixed(2)} platform fee
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
 
 
         {/* Payout History */}

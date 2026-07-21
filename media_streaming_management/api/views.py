@@ -1105,3 +1105,32 @@ def get_public_track_api(request, track_id):
             'upload_date':     track.upload_date.isoformat(),
         }
     }, status=200)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_artist_tips_api(request):
+    """Returns individual tip history for the logged-in artist."""
+    try:
+        artist = Artist.objects.get(user=request.user)
+    except Artist.DoesNotExist:
+        return Response({'status': 'error', 'message': 'Artist profile not found.'}, status=404)
+
+    tips = Tip.objects.filter(
+        track__artist=artist
+    ).select_related('track', 'tipper').order_by('-timestamp')
+
+    result = []
+    for tip in tips:
+        result.append({
+            'id':             tip.id,
+            'track_id':       tip.track.id,
+            'track_title':    tip.track.title,
+            'tipper_name':    f"{tip.tipper.first_name} {tip.tipper.last_name}" if tip.tipper else 'Anonymous',
+            'credits_amount': str(tip.credits_amount),
+            'artist_amount':  str(tip.artist_amount),
+            'platform_fee':   str(tip.platform_fee),
+            'timestamp':      tip.timestamp.isoformat(),
+        })
+
+    return Response({'status': 'success', 'data': result}, status=200)

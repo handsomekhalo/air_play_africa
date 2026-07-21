@@ -81,7 +81,8 @@ function TrackAvatar({ track, size = 56, playing = false }) {
 
 // ─── Mini Player Bar ─────────────────────────────────────────────
 
-function PlayerBar({ track, audioRef, isPlaying, onPlayPause, onClose }) {
+// function PlayerBar({ track, audioRef, isPlaying, onPlayPause, onClose }) {
+  function PlayerBar({ track, audioRef, isPlaying, onPlayPause, onClose, onNext, onPrev }) {
   const [progress, setProgress]   = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration]   = useState(0);
@@ -156,6 +157,19 @@ function PlayerBar({ track, audioRef, isPlaying, onPlayPause, onClose }) {
           {formatDuration(Math.floor(currentTime))} / {formatDuration(Math.floor(duration))}
         </span>
 
+        {/* Prev */}
+        <button
+          onClick={onPrev}
+          style={{
+            background: 'none', border: 'none', color: '#555',
+            fontSize: 20, cursor: 'pointer', padding: '0 4px', flexShrink: 0,
+          }}
+        >
+          ⏮
+        </button>
+
+
+
         {/* Play/Pause */}
         <button
           onClick={onPlayPause}
@@ -169,6 +183,18 @@ function PlayerBar({ track, audioRef, isPlaying, onPlayPause, onClose }) {
         >
           {isPlaying ? '⏸' : '▶'}
         </button>
+
+
+        {/* Next */}
+    <button
+      onClick={onNext}
+      style={{
+        background: 'none', border: 'none', color: '#555',
+        fontSize: 20, cursor: 'pointer', padding: '0 4px', flexShrink: 0,
+      }}
+    >
+      ⏭
+    </button>
 
         {/* Close */}
         <button
@@ -378,10 +404,12 @@ const BrowseTracksComponent = () => {
   const listenTimerRef = useRef(null);
   const streamSessionRef = useRef(null); // stores session_id per track play
   const [tippingTrack, setTippingTrack] = useState(null);
-const [tipToast, setTipToast]         = useState(null);
+  const [tipToast, setTipToast]         = useState(null);
 
 
   const audioRef = useRef(null);
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(null);
+  const queueRef = useRef([]); // always mirrors filtered
 
   // ── Fetch tracks ───────────────────────────────────────────────
 useEffect(() => {
@@ -431,6 +459,11 @@ useEffect(() => {
   setFiltered(result);
 }, [search, activeGenre, tracks]);
 
+
+//Keep queueRef in sync with filtered
+useEffect(() => {
+  queueRef.current = filtered;
+}, [filtered]);
   // ── Play / pause logic ─────────────────────────────────────────
 
 const handlePlay = async (track) => {
@@ -445,24 +478,9 @@ const handlePlay = async (track) => {
     }
     return;
   }
-  try {
-    const csrfToken = await getCsrfToken();
-    const res = await backendApi.get(
-      `/media_streaming_management_api/get_listener_play_token/${track.id}/`,
-      { headers: { "X-CSRFToken": csrfToken } }
-    );
-    const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-    const playUrl = `${backendBase}${res.data.play_url}`;
-    stopListenTimer();                  // stop previous track timer
-    audioRef.current.src = playUrl;
-    audioRef.current.load();
-    await audioRef.current.play();
-    setCurrentTrack(track);
-    setIsPlaying(true);
-    recordStream(track);               // record + start new timer
-  } catch (err) {
-    console.error("Playback failed:", err);
-  }
+  const index = queueRef.current.findIndex(t => t.id === track.id);
+  if (index !== -1) setCurrentTrackIndex(index);
+  await playTrackByObject(track);
 };
   
 
@@ -537,6 +555,26 @@ const stopListenTimer = () => {
 
 
 
+  const handleNext = async () => {
+  const queue = queueRef.current;
+  if (!queue.length) return;
+  const nextIndex = currentTrackIndex !== null
+    ? (currentTrackIndex + 1) % queue.length
+    : 0;
+  setCurrentTrackIndex(nextIndex);
+  await playTrackByObject(queue[nextIndex]);
+};
+
+const handlePrev = async () => {
+  const queue = queueRef.current;
+  if (!queue.length) return;
+  const prevIndex = currentTrackIndex !== null
+    ? (currentTrackIndex - 1 + queue.length) % queue.length
+    : 0;
+  setCurrentTrackIndex(prevIndex);
+  await playTrackByObject(queue[prevIndex]);
+};
+
 // Cleanup timer on unmount
 useEffect(() => {
   return () => {
@@ -544,6 +582,30 @@ useEffect(() => {
   };
 }, []);
 
+//to filter between nexyt and previous track
+
+const playTrackByObject = async (track) => {
+  try {
+    const csrfToken = await getCsrfToken();
+    const res = await backendApi.get(
+      `/media_streaming_management_api/get_listener_play_token/${track.id}/`,
+      { headers: { "X-CSRFToken": csrfToken } }
+    );
+
+    const backendBase = (process.env.NEXT_PUBLIC_BACKEND_URL || '').trim() || 'http://localhost:8000';
+    const playUrl = `${backendBase}${res.data.play_url}`;
+
+    stopListenTimer();
+    audioRef.current.src = playUrl;
+    audioRef.current.load();
+    await audioRef.current.play();
+    setCurrentTrack(track);
+    setIsPlaying(true);
+    recordStream(track);
+  } catch (err) {
+    console.error("Playback failed:", err);
+  }
+};
   // ── Render ─────────────────────────────────────────────────────
   return (
     <>
@@ -575,7 +637,8 @@ useEffect(() => {
       `}</style>
 
       {/* Hidden audio element */}
-      <audio ref={audioRef} onEnded={() => setIsPlaying(false)} />
+      {/* <audio ref={audioRef} onEnded={() => setIsPlaying(false)} /> */}
+        <audio ref={audioRef} onEnded={handleNext} />
         <ListenerNav />
 
 
@@ -714,15 +777,17 @@ useEffect(() => {
       </div>
 
       {/* ── Player bar ── */}
-      {currentTrack && (
-        <PlayerBar
-          track={currentTrack}
-          audioRef={audioRef}
-          isPlaying={isPlaying}
-          onPlayPause={handlePlayPause}
-          onClose={handleClose}
-        />
-      )}
+   {currentTrack && (
+  <PlayerBar
+    track={currentTrack}
+    audioRef={audioRef}
+    isPlaying={isPlaying}
+    onPlayPause={handlePlayPause}
+    onClose={handleClose}
+    onNext={handleNext}
+    onPrev={handlePrev}
+  />
+)}
 
     {tippingTrack && (
       <TipModal

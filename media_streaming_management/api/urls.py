@@ -40,5 +40,11 @@ urlpatterns = [
     path('get_artist_track_earnings_api/', views.get_artist_track_earnings_api, name='get_artist_track_earnings_api'),
     path('get_public_track_api/<int:track_id>/', views.get_public_track_api, name='get_public_track_api'),
     path('admin_list_withdrawals_api/', views.admin_list_withdrawals_api, name='admin_list_withdrawals_api'),
+    path('get_artist_tips_api/', views.get_artist_tips_api, name='get_artist_tips_api'),
+
+
+
+
+
     ]
     

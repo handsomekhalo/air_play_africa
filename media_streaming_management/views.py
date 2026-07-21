@@ -663,3 +663,27 @@ def get_artist_track_earnings(request):
             "status": "error",
             "message": f"Server error: {str(e)}"
         }, status=500)
+
+@csrf_exempt
+def get_artist_tips(request):
+    """Proxy — get artist's individual tip history."""
+    if request.method != 'GET':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+    try:
+        auth_header = request.headers.get('Authorization', '')
+        token = None
+        if auth_header.startswith('Token '): token = auth_header.split('Token ')[-1]
+        elif auth_header.startswith('Bearer '): token = auth_header.split('Bearer ')[-1]
+        if not token:
+            return JsonResponse({'status': 'error', 'message': 'Authorization token required.'}, status=401)
+
+        url = f"{host_url()}{reverse_lazy('get_artist_tips_api')}"
+        response = requests.get(
+            url,
+            headers={'Authorization': f'Token {token}'},
+            timeout=30
+        )
+        return JsonResponse(response.json(), status=response.status_code)
+    except Exception as e:
+        print(f"❌ get_artist_tips error: {e}")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

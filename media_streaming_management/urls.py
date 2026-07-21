@@ -25,6 +25,7 @@ urlpatterns = [
     path('get_artist_revenue_timeseries/', views.get_artist_revenue_timeseries, name='get_artist_revenue_timeseries'),
     path('get_artist_track_earnings/', views.get_artist_track_earnings, name='get_artist_track_earnings'),
     path('get_artist_tips/', views.get_artist_tips, name='get_artist_tips'),
+    path('merit_score_charts/', views.merit_score_charts, name='merit_score_charts'),
 
 
     

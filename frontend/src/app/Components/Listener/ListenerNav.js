@@ -162,6 +162,8 @@ const ListenerNav = () => {
         <div className="ln-right">
           <div className="ln-desktop-links">
             {navItem('Browse', '/browse')}
+            {navItem('Charts', '/browse/charts')}
+
             {navItem('Profile', '/listener/profile')}
             <button
               onClick={handleLogout}
@@ -187,6 +189,7 @@ const ListenerNav = () => {
 
         <div className={`ln-mobile-menu ${menuOpen ? 'open' : ''}`}>
           {navItem('Browse', '/browse')}
+          {navItem('Charts', '/browse/charts')}
           {navItem('Profile', '/listener/profile')}
           {navItem('Wallet', '/listener/wallet')}
           <button

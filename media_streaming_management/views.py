@@ -687,3 +687,18 @@ def get_artist_tips(request):
     except Exception as e:
         print(f"❌ get_artist_tips error: {e}")
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    
+
+@csrf_exempt
+def merit_score_charts(request):
+    """Proxy — weekly charts by merit score. No auth required."""
+    if request.method != 'GET':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+    try:
+        limit = request.GET.get('limit', '20')
+        url   = f"{host_url()}{reverse_lazy('discover_tracks_api')}?limit={limit}"
+        response = requests.get(url, timeout=30)
+        return JsonResponse(response.json(), status=response.status_code)
+    except Exception as e:
+        print(f"❌ charts error: {e}")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

@@ -41,6 +41,7 @@ urlpatterns = [
     path('get_public_track_api/<int:track_id>/', views.get_public_track_api, name='get_public_track_api'),
     path('admin_list_withdrawals_api/', views.admin_list_withdrawals_api, name='admin_list_withdrawals_api'),
     path('get_artist_tips_api/', views.get_artist_tips_api, name='get_artist_tips_api'),
+    path('discover_tracks_api/', views.discover_tracks_api, name='discover_tracks_api'),
 
 
 

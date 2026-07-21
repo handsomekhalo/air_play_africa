@@ -80,24 +80,58 @@ export default function LoginPage() {
 
   // 🔐 ARTIST ONBOARDING DECISION (RIGHT HERE)
   // if (user.role === 'artist') {
-  if (user.user_type__name?.toLowerCase() === 'artist') {
+  // if (user.user_type__name?.toLowerCase() === 'artist') {
 
-    if (!artist || artist.is_onboarded === false) {
-      // router.replace(
-      //   // `/artist/onboarding?step=${artist?.onboarding_step || 1}`
-      //      `/Artist_Onboarding?step=${artist?.onboarding_step || 1}`
+  //   if (!artist || artist.is_onboarded === false) {
+  //     // router.replace(
+  //     //   // `/artist/onboarding?step=${artist?.onboarding_step || 1}`
+  //     //      `/Artist_Onboarding?step=${artist?.onboarding_step || 1}`
           
-      // );
-        router.replace(`/artist-onboarding?step=${artist?.onboarding_step || 1}`);
+  //     // );
+  //       router.replace(`/artist-onboarding?step=${artist?.onboarding_step || 1}`);
 
+  //     return;
+  //   }
+
+  //   router.replace('/artist/dashboard');
+  //         // router.replace('/Components/System_Management_Components/dashboard');
+    
+  //           return;
+  //         }
+  if (response.data.status === "success" && response.data.token) {
+  const token  = response.data.token;
+  const user   = response.data.user;
+  const artist = response.data.artist;
+
+  authLogin(token, tokenToUse);
+  localStorage.setItem('authToken', token);
+  localStorage.setItem('csrfToken', tokenToUse);
+  localStorage.setItem('user', JSON.stringify(user));
+
+  const userType = user.user_type__name?.toLowerCase();
+
+  if (userType === 'artist') {
+    if (!artist || artist.is_onboarded === false) {
+      router.replace(`/artist-onboarding?step=${artist?.onboarding_step || 1}`);
       return;
     }
-
     router.replace('/artist/dashboard');
-          // router.replace('/Components/System_Management_Components/dashboard');
-    
-            return;
-          }
+    return;
+  }
+
+  if (userType === 'listener') {
+    router.replace('/browse');
+    return;
+  }
+
+  if (userType === 'admin') {
+    router.replace('/admin/dashboard');
+    return;
+  }
+
+  // Fallback for any other user type
+  setErrors('This login is for Admin and Artist accounts only. Listeners please use the listener login.');
+}
 
           // fallback (admins, etc.)
           // router.replace('/Components/System_Management_Components/dashboard');
@@ -127,6 +161,8 @@ export default function LoginPage() {
           Sign in to your account
         </h2>
       </div>
+
+      
 
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -175,6 +211,13 @@ export default function LoginPage() {
           </button>
         </form>
       </div>
+
+      <p className="mt-6 text-center text-sm text-gray-500">
+  Are you a listener?{' '}
+  <a href="/listener/login" className="font-semibold text-indigo-600 hover:text-indigo-500">
+    Sign in here
+  </a>
+</p>
     </div>
   );
 }

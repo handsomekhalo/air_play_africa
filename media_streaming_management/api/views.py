@@ -507,10 +507,82 @@ def update_stream_api(request, session_id):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
-def discover_tracks(request):
-    """Merit-based discovery (top by score)."""
-    tracks = Track.objects.order_by('-merit_score')[:10]
-    return Response(TrackSerializer(tracks, many=True).data)
+def discover_tracks_api(request):
+    from django.utils.timezone import now
+    from datetime import timedelta
+
+    today      = now().date()
+    start_date = today - timedelta(days=6)
+
+    # Only count streams and tips from the last 7 days
+    tracks = Track.objects.filter(status='ready').prefetch_related('streams', 'tips')
+
+    scored = []
+    for track in tracks:
+        weekly_streams = track.streams.filter(
+            timestamp__date__gte=start_date
+        ).aggregate(
+            unique=Count('session_id', distinct=True),
+            avg_time=Avg('listen_time')
+        )
+        weekly_tips = track.tips.filter(
+            timestamp__date__gte=start_date
+        ).count()
+
+        weekly_score = (
+            (weekly_streams['unique'] or 0) *
+            (weekly_streams['avg_time'] or 0)
+        ) + weekly_tips
+
+        if weekly_score > 0:
+            scored.append((weekly_score, track))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    scored = scored[:int(request.GET.get('limit', 20))]
+
+    result = []
+    for i, (score, track) in enumerate(scored, start=1):
+        result.append({
+            'rank':            i,
+            'id':              track.id,
+            'title':           track.title,
+            'artist_name':     f"{track.artist.user.first_name} {track.artist.user.last_name}",
+            'genre':           track.ai_genre or track.genre or '',
+            'mood':            track.ai_mood  or '',
+            'cover_image_url': track.cover_image_url or '',
+            'duration':        track.duration or 0,
+            'bpm':             track.bpm or None,
+            'play_count':      track.play_count or 0,
+            'merit_score':     round(score, 1),
+        })
+
+    return Response({'status': 'success', 'data': result}, status=200)
+# @api_view(['GET'])
+# @permission_classes([AllowAny])
+# def discover_tracks_api(request):
+#     """Weekly charts — top tracks by merit score."""
+#     limit  = int(request.GET.get('limit', 20))
+#     tracks = Track.objects.filter(
+#         status='ready', merit_score__gt=0
+#     ).order_by('-merit_score')[:limit]
+
+#     result = []
+#     for i, track in enumerate(tracks, start=1):
+#         result.append({
+#             'rank':            i,
+#             'id':              track.id,
+#             'title':           track.title,
+#             'artist_name':     f"{track.artist.user.first_name} {track.artist.user.last_name}",
+#             'genre':           track.ai_genre or track.genre or '',
+#             'mood':            track.ai_mood  or '',
+#             'cover_image_url': track.cover_image_url or '',
+#             'duration':        track.duration or 0,
+#             'bpm':             track.bpm or None,
+#             'play_count':      track.play_count or 0,
+#             'merit_score':     track.merit_score or 0,
+#         })
+
+#     return Response({'status': 'success', 'data': result}, status=200)
 
 
 

@@ -634,45 +634,6 @@ def update_profile(request):
 
 
 
-# @csrf_exempt
-# def toggle_user_active(request, user_id):
-#     if request.method != "PATCH":
-#         print("🟢 Toggle User Active Proxy called")
-#         return JsonResponse({"status": "error"}, status=405)
-
-#     # token = extract_token(request)
-#     auth_header = request.headers.get("Authorization", "")
-#     print("🔍 Auth Header:", auth_header    )
-#     token = None
-
-#     if auth_header.startswith("Token "):
-#         token = auth_header.split("Token ")[-1]
-#         print("🔍 Extracted Token:", token)
-#     elif auth_header.startswith("Bearer "):
-#         print("🔍 Extracted Token-------:", token)
-#         token = auth_header.split("Bearer ")[-1]
-#         print("🔍 Extracted Token *********:", token)
-
-#         if not token:
-#             print("⚠️ No token found in Authorization header")
-#             return JsonResponse({
-#                 "status": "error",
-#                 "message": "Authorization token is required."
-#             }, status=401)
-
-#     headers = {
-#         "Authorization": f"Bearer {token}",
-#         "Content-Type": "application/json"
-#     }
-
-#     url_path = reverse_lazy(
-#         "toggle_user_active_api",
-#         kwargs={"user_id": user_id}
-#     )
-#     api_url = f"{host_url(request)}{url_path}"
-
-#     response = requests.patch(api_url, headers=headers, timeout=30)
-#     return JsonResponse(response.json(), status=response.status_code)
 @csrf_exempt
 def toggle_user_active(request, user_id):
     if request.method != "PATCH":

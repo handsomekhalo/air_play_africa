@@ -203,16 +203,27 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 
+# CSRF_TRUSTED_ORIGINS = ['https://6820-102-38-124-42.ngrok-free.app']
+ALLOWED_HOSTS = [
+    '127.0.0.1',
+    'localhost',
+    "145.241.184.69.nip.io"
+
+
+]
+
+
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "http://127.0.0.1:8000",
     "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "https://145.241.184.69.nip.io"
     "https://air-play-africa-kkicvp93k-titus-projects-cdab7abf.vercel.app",
-    # "http://56.228.24.233",
-    # "http://52.14.111.23",
 
 ]
+   
+
 
 
 CORS_ALLOW_CREDENTIALS = True  # Important for sending cookies cross-domain

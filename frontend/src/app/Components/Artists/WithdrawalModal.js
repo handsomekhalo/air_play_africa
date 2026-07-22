@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '../../../../AuthContext';
-import backendApi from '@/utils/backendApi';
+import backendApi from '../../../utils/backendApi';
 import { getCsrfToken } from '@/utils/csrf';
 import { Wallet, X, AlertCircle, CheckCircle } from 'lucide-react';
 
@@ -134,7 +134,7 @@ export default function WithdrawalModal({ onClose, availableBalance, onSuccess }
               {success}
             </p>
             <p style={{ margin: 0, fontSize: 13, color: '#6b7280', textAlign: 'center' }}>
-              Your request is under review. You'll receive confirmation once processed.
+              Your request is under review. You will receive confirmation once processed.
             </p>
             <button
               onClick={onClose}

@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../DashboardUICompo
 import { Badge } from "../../DashboardUIComponents/UI/Badge";
 import { Music, TrendingUp, Award } from "lucide-react";
 
-import backendApi from "@/utils/backendApi";
+
+import backendApi from '../../../../utils/backendApi'
 import { useAuth } from "../../../../../AuthContext";
 
 export const TrackAnalytics = () => {

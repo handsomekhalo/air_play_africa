@@ -1,6 +1,4 @@
 {
- 
-
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
@@ -25,10 +23,10 @@
     "incremental": true,
     "module": "esnext",
     "esModuleInterop": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "plugins": [
       {
         "name": "next"
@@ -39,8 +37,20 @@
     "next-env.d.ts",
     ".next/types/**/*.ts",
     "**/*.ts",
-    "**/*.tsx"
-, "src/app/Components/MetricCard.js", "src/app/Components/NavLink.js", "src/app/Components/RevenueChart.js", "src/app/Components/TrackAnalytics.js", "src/app/Components/hooks/use-mobile.js", "src/app/Components/hooks/use-toast.js", "src/app/Components/lib/utils.js", "src/app/Components/ui/alert.js", "src/app/Components/ui/aspect-ratio.js", "src/app/Components/ui/avatar.js", "src/app/Components/Admin/UI/Metrics.js"  ],
+    "**/*.tsx",
+    "src/app/Components/MetricCard.js",
+    "src/app/Components/NavLink.js",
+    "src/app/Components/RevenueChart.js",
+    "src/app/Components/TrackAnalytics.js",
+    "src/app/Components/hooks/use-mobile.js",
+    "src/app/Components/hooks/use-toast.js",
+    "src/app/Components/lib/utils.js",
+    "src/app/Components/ui/alert.js",
+    "src/app/Components/ui/aspect-ratio.js",
+    "src/app/Components/ui/avatar.js",
+    "src/app/Components/Admin/UI/Metrics.js",
+    ".next/dev/types/**/*.ts"
+  ],
   "exclude": [
     "node_modules"
   ]

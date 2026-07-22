@@ -6,7 +6,10 @@ import backendApi from '@/utils/backendApi';
 import { getCsrfToken } from '@/utils/csrf';
 import Sidebar from '@/app/Components/System_Management_Components/dashboard/SideBarComponent/sidebar';
 import { User, Save, AlertCircle, CheckCircle } from 'lucide-react';
-import { useAuthGuard } from '../../../utils/useAuthGuard';
+// import { useAuthGuard } from '../../../utils/useAuthGuard';
+import { useAuthGuard } from '@/utils/useAuthGuard';
+
+
 
 export default function AdminProfilePage() {
   useAuthGuard('/login', 'Admin');

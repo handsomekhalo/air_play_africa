@@ -36,6 +36,7 @@ ALLOWED_HOSTS = ['*'] if DEBUG else config("ALLOWED_HOSTS").split(",")
 # Application definition
 
 INSTALLED_APPS = [
+        'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -45,7 +46,6 @@ INSTALLED_APPS = [
      'rest_framework',
      'rest_framework.authtoken',
      'rest_framework_simplejwt',
-    'corsheaders',
     'system_management',
     'media_streaming_management',
 
@@ -54,7 +54,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # Must be first
-    'django.middleware.security.SecurityMiddleware',
+    # 'django.middleware.security.SecurityMiddleware',
+    #     'corsheaders.middleware.CorsMiddleware',
+
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -190,25 +192,30 @@ CSRF_USE_SESSIONS = False
 CORS_ALLOW_CREDENTIALS = True
 # CORS_ORIGIN_ALLOW_ALL = False  # Good for security
 # Or for development, you can use:
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",  # If you're running frontend locally
-    "http://localhost:3000",
-    # "http://52.14.111.23",
-  # Your Next.js dev server
-    
-    
-]
+CORS_ALLOW_ALL_ORIGINS = False
+# Change these in settings.py:
+CSRF_COOKIE_SECURE = True  # was False — must be True for HTTPS
 
+ALLOWED_HOSTS = [
+    '127.0.0.1',
+    'localhost',
+    '145.241.184.69',           # your raw IP
+    '145.241.184.69.nip.io',    # nip.io domain
+]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "http://127.0.0.1:8000",
     "http://localhost:8000",
-    # "http://56.228.24.233",
-    # "http://52.14.111.23",
+    "http://127.0.0.1:8000",
+    "https://145.241.184.69.nip.io",  # note: missing comma was here — bug
+    "https://air-play-africa.vercel.app",
+]
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://air-play-africa.vercel.app",
 
 ]
 
@@ -220,7 +227,12 @@ CORS_ALLOW_CREDENTIALS = True  # Important for sending cookies cross-domain
 CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
 
 # Tell Django it's behind a trusted proxy (NGINX)
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'http')
+# SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'http')
+
+SECURE_PROXY_SSL_HEADER = (
+    "HTTP_X_FORWARDED_PROTO",
+    "https",
+)
 
 # Ensure you're not forcing SSL unless you're using HTTPS via AWS ACM/Load Balancer
 SECURE_SSL_REDIRECT = False

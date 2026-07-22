@@ -7,8 +7,8 @@ import backendApi from "@/utils/backendApi";
 import { getCsrfToken } from "@/utils/csrf";
 import Sidebar from "@/app/Components/System_Management_Components/dashboard/SideBarComponent/sidebar";
 import { Shield, CheckCircle, XCircle, ChevronDown, ChevronUp, Plus, X } from "lucide-react";
-import { useAuthGuard } from '../../../../../utils/useAuthGuard';
-
+// import { useAuthGuard } from '../../../../../utils/useAuthGuard';
+import { useAuthGuard } from '@/utils/useAuthGuard';
 
 const ITEMS_PER_PAGE = 15;
 

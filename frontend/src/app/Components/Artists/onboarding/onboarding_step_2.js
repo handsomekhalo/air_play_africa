@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../../../AuthContext';
 
 
-import backendApi from '@/utils/backendApi';
+import backendApi from '../../../../utils/backendApi';
 
 export default function StepTwoOnboarding() {
   const router = useRouter();

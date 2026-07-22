@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '../../../../AuthContext';
-import backendApi from '@/utils/backendApi';
+import backendApi from '../../../utils/backendApi';
 import { getCsrfToken } from '@/utils/csrf';
 import { Wallet, X, AlertCircle, CheckCircle } from 'lucide-react';
 

@@ -8,6 +8,7 @@ from django.urls import reverse, reverse_lazy
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.csrf import csrf_exempt
 import requests
+import os
 
 
 from system_management.general_func_classes import api_connection, host_url
@@ -55,15 +56,23 @@ def set_csrf_token(request):
      return response
 
 
-# View that redirects to Next.js
+
+
 def login_view(request):
     print("🟢 Login view called")
-    data =request.data
+    frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+    return redirect(f"{frontend_url}/")
+# View that redirects to Next.js
 
-    # print("Login view called with data:", data)
+
+# def login_view(request):
+#     print("🟢 Login view called")
+#     data =request.data
+
+#     # print("Login view called with data:", data)
 
 
-    return redirect("http://localhost:3000/")  # Next.js is running here
+#     return redirect("http://localhost:3000/")  # Next.js is running here
     # return redirect('http://52.14.111.23:3000/')  # or your real domain
 
 @csrf_exempt

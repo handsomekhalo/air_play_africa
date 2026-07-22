@@ -191,22 +191,15 @@ CORS_ALLOW_CREDENTIALS = True
 # CORS_ORIGIN_ALLOW_ALL = False  # Good for security
 # Or for development, you can use:
 CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://air-play-africa-kkicvp93k-titus-projects-cdab7abf.vercel.app",
-]
+# Change these in settings.py:
+CSRF_COOKIE_SECURE = True  # was False — must be True for HTTPS
 
-
-# CSRF_TRUSTED_ORIGINS = ['https://6820-102-38-124-42.ngrok-free.app']
 ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
-    "145.241.184.69.nip.io"
-
-
+    '145.241.184.69',           # your raw IP
+    '145.241.184.69.nip.io',    # nip.io domain
 ]
-
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
@@ -222,6 +215,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "https://air-play-africa-kkicvp93k-titus-projects-cdab7abf.vercel.app",
 ]
+
 
 CORS_ALLOW_CREDENTIALS = True  # Important for sending cookies cross-domain
 

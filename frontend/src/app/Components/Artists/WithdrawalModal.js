@@ -134,7 +134,7 @@ export default function WithdrawalModal({ onClose, availableBalance, onSuccess }
               {success}
             </p>
             <p style={{ margin: 0, fontSize: 13, color: '#6b7280', textAlign: 'center' }}>
-              Your request is under review. You'll receive confirmation once processed.
+              Your request is under review. You will receive confirmation once processed.
             </p>
             <button
               onClick={onClose}

@@ -195,6 +195,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",  # If you're running frontend locally
     "http://localhost:3000",
+    "https://air-play-africa-kkicvp93k-titus-projects-cdab7abf.vercel.app",
     # "http://52.14.111.23",
   # Your Next.js dev server
     
@@ -207,6 +208,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://127.0.0.1:8000",
     "http://localhost:8000",
+    "https://air-play-africa-kkicvp93k-titus-projects-cdab7abf.vercel.app",
     # "http://56.228.24.233",
     # "http://52.14.111.23",
 

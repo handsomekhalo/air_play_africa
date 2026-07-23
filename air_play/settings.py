@@ -208,15 +208,18 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
-    "https://145.241.184.69.nip.io",  # note: missing comma was here — bug
+    "https://145.241.184.69.nip.io",
     "https://air-play-africa.vercel.app",
+    "https://air-play-africa-git-development-titus-projects-cdab7abf.vercel.app",
 ]
+
+
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "https://air-play-africa.vercel.app",
-
+    "https://air-play-africa-git-development-titus-projects-cdab7abf.vercel.app",
 ]
 
 

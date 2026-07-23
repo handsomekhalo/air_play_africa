@@ -27,7 +27,7 @@ class BaseFormSerializer(serializers.Serializer):
 #     return base_url
 
 def host_url(request=None):
-    return "http://127.0.0.1:8000"
+    return "http://127.0.0.1:8001"
 
 def api_connection(method, url, headers, data):
     """This function is used to connect to the api."""

@@ -258,4 +258,5 @@ BACK_BLAZE_APLLICATION_KEY =config('BACK_BLAZE_APLLICATION_KEY')
 BACK_BLAZE_APLLICATION_KEY =config('BACK_BLAZE_APLLICATION_KEY')
 PAYSTACK_BASE_URL = config('PAYSTACK_BASE_URL')
 PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY')
-FRONTEND_URL = 'http://localhost:3000'  # change for production
+# FRONTEND_URL = 'http://localhost:3000'  # change for production
+FRONTEND_URL ="https://air-play-africa.vercel.app/"

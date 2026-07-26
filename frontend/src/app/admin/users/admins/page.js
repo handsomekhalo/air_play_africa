@@ -129,11 +129,13 @@ function CreateAdminModal({ onClose, onCreated, authToken }) {
 }
 
 // ─── Admin Row ───────────────────────────────────────────────────
-function AdminRow({ admin, onToggle, toggling }) {
+function AdminRow({ admin, onToggle, toggling, isSelf }) {  
   const [expanded, setExpanded] = useState(false);
   const isProcessing = toggling === admin.id;
 
   return (
+
+
     <div style={{ border: '1px solid #e5e7eb', borderRadius: 10, marginBottom: 10, overflow: 'hidden' }}>
       <div
         onClick={() => setExpanded(p => !p)}
@@ -193,20 +195,23 @@ function AdminRow({ admin, onToggle, toggling }) {
 
           <button
             onClick={e => { e.stopPropagation(); onToggle(admin.id); }}
-            disabled={isProcessing}
+            disabled={isProcessing || isSelf}
             style={{
               padding: '10px 20px', borderRadius: 8, border: 'none',
               background: admin.is_active ? '#ef4444' : '#10b981',
               color: '#fff', fontSize: 13, fontWeight: 700,
               cursor: isProcessing ? 'not-allowed' : 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: 6,
-              opacity: isProcessing ? 0.7 : 1,
+                 opacity: isProcessing || isSelf ? 0.4 : 1,
+                cursor: isSelf ? 'not-allowed' : 'pointer',
             }}
           >
-            {admin.is_active
-              ? <><XCircle size={14} /> Suspend Admin</>
-              : <><CheckCircle size={14} /> Activate Admin</>
-            }
+       {isSelf
+      ? <><XCircle size={14} /> Can&apos;t suspend yourself</>
+      : admin.is_active
+        ? <><XCircle size={14} /> Suspend Admin</>
+        : <><CheckCircle size={14} /> Activate Admin</>
+    }
           </button>
         </div>
       )}
@@ -216,6 +221,8 @@ function AdminRow({ admin, onToggle, toggling }) {
 
 // ─── Main Page ───────────────────────────────────────────────────
 export default function AdminAdminsPage() {
+  const currentUserEmail = JSON.parse(localStorage.getItem('user') || '{}')?.email;
+
   const { authToken } = useAuth();
 
   const [admins, setAdmins]         = useState([]);
@@ -362,7 +369,8 @@ export default function AdminAdminsPage() {
             <div style={{ padding: '60px 0', textAlign: 'center', color: '#9ca3af' }}>No admins found.</div>
           ) : (
             paginated.map(admin => (
-              <AdminRow key={admin.id} admin={admin} onToggle={handleToggle} toggling={toggling} />
+              <AdminRow key={admin.id} admin={admin} onToggle={handleToggle} toggling={toggling}  isSelf={admin.email === currentUserEmail}
+ />
             ))
           )}
 

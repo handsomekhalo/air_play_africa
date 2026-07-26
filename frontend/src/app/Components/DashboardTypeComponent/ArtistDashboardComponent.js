@@ -11,7 +11,7 @@ import { Button } from "../DashboardUIComponents/UI/Button";
 import UploadFileComponent from "../Artists/UploadTrack/UploadFileComponent";
 // import UploadPage from "../Artists/uploadFile";
 import UploadPage from "../Artists/UploadTrack/uploadFile";
-import ProfileModal from "../../Profile/profile_modall";
+import ProfileModal from "../../profile/profile_modall";
 import { getCsrfToken } from "../../../utils/csrf";
 
 import {

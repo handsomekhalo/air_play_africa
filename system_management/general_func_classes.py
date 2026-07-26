@@ -26,8 +26,28 @@ class BaseFormSerializer(serializers.Serializer):
 #     base_url = f"{protocol}://{host}"
 #     return base_url
 
+# def host_url(request=None):
+#     return "http://127.0.0.1:8000"
+import socket
+
 def host_url(request=None):
-    return "http://127.0.0.1:8001"
+    """
+    Returns the internal base URL for proxy-to-self calls.
+    Tries ports 8001, 8002, 8003 in order and returns the first one listening.
+    Falls back to 8000 if none found.
+    """
+    for port in [8001, 8002, 8003, 8000]:
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(0.5)
+            result = sock.connect_ex(('127.0.0.1', port))
+            sock.close()
+            if result == 0:
+                return f"http://127.0.0.1:{port}"
+        except Exception:
+            continue
+    return "http://127.0.0.1:8000"
+
 
 def api_connection(method, url, headers, data):
     """This function is used to connect to the api."""

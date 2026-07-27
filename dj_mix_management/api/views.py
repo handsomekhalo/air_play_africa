@@ -93,6 +93,24 @@ def upload_mix_api(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_mix_detail_api(request, mix_id):
+    """Returns full mix detail for the DJ who owns it."""
+    try:
+        mix = Mix.objects.get(id=mix_id, dj=request.user)
+    except Mix.DoesNotExist:
+        return Response({
+            'status': 'error',
+            'message': 'Mix not found or you do not own this mix.'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    return Response({
+        'status': 'success',
+        'data': MixSerializer(mix).data
+    }, status=status.HTTP_200_OK)
+
+
 # ─── Get My Mixes (DJ) ───────────────────────────────────────────
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -181,7 +199,8 @@ def play_mix_with_token_api(request, token):
 
     signer = TimestampSigner()
     try:
-        mix_id = signer.unsign(token, max_age=60)
+        # mix_id = signer.unsign(token, max_age=60)
+        mix_id = signer.unsign(token, max_age=600)  # 10 minutes for testing
     except (BadSignature, SignatureExpired):
         return Response({
             'status':  'error',
@@ -328,10 +347,10 @@ def send_mix_tip_api(request):
 
     credits_amount = Decimal(str(credits_amount))
 
-    if credits_amount < Decimal(str(constants.MINIMUM_TIP_AMOUNT)):
+    if credits_amount < Decimal(str(constants.MINIMUM_MIX_TIP_AMOUNT)):
         return Response({
             'status':  'error',
-            'message': f'Minimum tip is R{constants.MINIMUM_TIP_AMOUNT}.'
+            'message': f'Minimum tip is R{constants.MINIMUM_MIX_TIP_AMOUNT}.'
         }, status=status.HTTP_400_BAD_REQUEST)
 
     try:
@@ -528,4 +547,24 @@ def admin_moderate_mix_api(request, mix_id):
         'status':  'success',
         'message': message,
         'data':    MixSerializer(mix).data
+    }, status=status.HTTP_200_OK)
+
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_mix_api(request, mix_id):
+    """DJ deletes their own mix."""
+    try:
+        mix = Mix.objects.get(id=mix_id, dj=request.user)
+    except Mix.DoesNotExist:
+        return Response({
+            'status':  'error',
+            'message': 'Mix not found or you do not own this mix.'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    mix.delete()
+    return Response({
+        'status':  'success',
+        'message': 'Mix deleted successfully.'
     }, status=status.HTTP_200_OK)

@@ -35,7 +35,7 @@ urlpatterns = [
     path('media_streaming_management/', include('media_streaming_management.urls')),
     path('media_streaming_management_api/', include('media_streaming_management.api.urls')),
     path('dj_mix_management/', include('dj_mix_management.urls')),
-    # path('dj_mix_management_api/', include('dj_mix_management.api.urls')),
+    path('dj_mix_management_api/', include('dj_mix_management.api.urls')),
 
 
     # path('question_management/', include('question_management.urls')),

@@ -734,6 +734,7 @@ def get_admin_overview_api(request):
     start_date = today - timedelta(days=6)
 
     total_artists  = Artist.objects.count()
+    total_djs = User.objects.filter(user_type__name='DJ').count()
     active_artists = Artist.objects.filter(is_onboarded=True).count()
     streams_7_days = Stream.objects.filter(timestamp__date__gte=start_date).count()
     flagged_tracks = Track.objects.filter(status='failed').count()
@@ -776,6 +777,7 @@ def get_admin_overview_api(request):
             'totalListeners':    total_listeners,
             'activeListeners':   active_listeners,
             'totalListenHours':  total_listen_hours,
+            'totalDJs': total_djs,
         }
     }, status=200)
 

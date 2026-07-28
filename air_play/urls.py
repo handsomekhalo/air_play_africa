@@ -34,13 +34,8 @@ urlpatterns = [
     path('system_management_api/', include('system_management.api.urls')),
     path('media_streaming_management/', include('media_streaming_management.urls')),
     path('media_streaming_management_api/', include('media_streaming_management.api.urls')),
+    path('dj_mix_management/', include('dj_mix_management.urls')),
+    path('dj_mix_management_api/', include('dj_mix_management.api.urls')),
 
-
-    # path('question_management/', include('question_management.urls')),
-    # path('question_management_api/', include('question_management.api.urls')),
-    # path('application_management/', include('application_management.urls')),
-    #  path('application_management_api/', include('application_management.api.urls')),
-    # path('form_portal_management/', include('form_portal_management.urls')),
-    # path('form_portal_management_api/', include('form_portal_management.api.urls')),
 
 ]

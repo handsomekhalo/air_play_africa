@@ -50,6 +50,8 @@ from rest_framework.decorators import (
 )
 
 from system_management.permissions import IsAdminUserType
+from django.db.models import Sum
+
 
 
 @api_view(["POST"])
@@ -732,6 +734,7 @@ def get_admin_overview_api(request):
     start_date = today - timedelta(days=6)
 
     total_artists  = Artist.objects.count()
+    total_djs = User.objects.filter(user_type__name='DJ').count()
     active_artists = Artist.objects.filter(is_onboarded=True).count()
     streams_7_days = Stream.objects.filter(timestamp__date__gte=start_date).count()
     flagged_tracks = Track.objects.filter(status='failed').count()
@@ -739,6 +742,18 @@ def get_admin_overview_api(request):
     organic_streams = Stream.objects.filter(listen_time__gte=30).count()
     total_streams   = Stream.objects.count()
     organic_pct     = round((organic_streams / total_streams * 100), 1) if total_streams > 0 else 100.0
+
+
+    total_listeners = User.objects.filter(user_type__name='Listener').count()
+    active_listeners = User.objects.filter(user_type__name='Listener', is_active=True).count()
+
+    # Total listen time across all streams (in hours)
+    total_listen_seconds = Stream.objects.aggregate(
+        total=Sum('listen_time')
+    )['total'] or 0
+    total_listen_hours = round(total_listen_seconds / 3600, 1)
+
+
 
     if flagged_tracks == 0:
         integrity_status  = 'Healthy'
@@ -759,6 +774,10 @@ def get_admin_overview_api(request):
             'flaggedTracks':   flagged_tracks,
             'integrityStatus': integrity_status,
             'integrityMessage': integrity_message,
+            'totalListeners':    total_listeners,
+            'activeListeners':   active_listeners,
+            'totalListenHours':  total_listen_hours,
+            'totalDJs': total_djs,
         }
     }, status=200)
 

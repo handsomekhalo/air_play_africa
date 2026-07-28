@@ -17,8 +17,7 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
 
         self.stdout.write('Starting to load usertypes...')
-        names = ['Admin', 'Artist', 'Listener']
-
+        names = ['Admin', 'Artist', 'Listener', 'DJ', 'LabelRep']
 
         # Iterate through usertypes
         for name in names:

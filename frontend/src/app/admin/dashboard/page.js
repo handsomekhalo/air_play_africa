@@ -238,11 +238,15 @@ export default function Admin_Dashboard() {
 
         <main className="container mx-auto px-6 py-8">
           {/* Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"> */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <MetricCard title="Total Artists"    value={data.totalArtists}      icon={Users}         />
             <MetricCard title="Active Artists"   value={data.activeArtists}     icon={Users}         />
             <MetricCard title="Streams (7 days)" value={data.streamsLast7Days}  icon={Music}         />
             <MetricCard title="Flagged Tracks"   value={data.flaggedTracks}     icon={AlertTriangle} />
+            <MetricCard title="Total Listeners"    value={data.totalListeners}   icon={Users} />
+            <MetricCard title="Active Listeners"   value={data.activeListeners}  icon={Users} />
+            <MetricCard title="Listen Hours"       value={`${data.totalListenHours}h`} icon={Music} />
           </div>
 
           {/* Integrity Banner */}

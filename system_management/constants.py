@@ -8,6 +8,7 @@ LISTENER = "Listener"
 # system_management/constants.py — add this
 MINIMUM_WITHDRAWAL_AMOUNT = 500 # 
 MINIMUM_TIP_AMOUNT = 1.00
+MINIMUM_MIX_TIP_AMOUNT = 10.00
 
 
 STREAM_MIN_LISTEN_SECONDS = 30      # minimum listen time to qualify as a real stream

@@ -205,6 +205,15 @@ ALLOWED_HOSTS = [
     '145.241.184.69.nip.io',    # nip.io domain
 ]
 
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://air-play-africa.vercel.app",
+    "https://air-play-africa-git-development-titus-projects-cdab7abf.vercel.app",
+    "https://clear-wave-eosin.vercel.app",
+]
+
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -213,16 +222,27 @@ CSRF_TRUSTED_ORIGINS = [
     "https://145.241.184.69.nip.io",
     "https://air-play-africa.vercel.app",
     "https://air-play-africa-git-development-titus-projects-cdab7abf.vercel.app",
+    "https://clear-wave-eosin.vercel.app",
 ]
 
+# CSRF_TRUSTED_ORIGINS = [
+#     "http://localhost:3000",
+#     "http://127.0.0.1:3000",
+#     "http://localhost:8000",
+#     "http://127.0.0.1:8000",
+#     "https://145.241.184.69.nip.io",
+#     "https://air-play-africa.vercel.app",
+#     "https://air-play-africa-git-development-titus-projects-cdab7abf.vercel.app",
+# ]
 
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://air-play-africa.vercel.app",
-    "https://air-play-africa-git-development-titus-projects-cdab7abf.vercel.app",
-]
+
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:3000",
+#     "http://127.0.0.1:3000",
+#     "https://air-play-africa.vercel.app",
+#     "https://air-play-africa-git-development-titus-projects-cdab7abf.vercel.app",
+# ]
 
 
 CORS_ALLOW_CREDENTIALS = True  # Important for sending cookies cross-domain

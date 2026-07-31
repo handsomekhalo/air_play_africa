@@ -162,7 +162,9 @@ const ListenerNav = () => {
         <div className="ln-right">
           <div className="ln-desktop-links">
             {navItem('Browse', '/browse')}
+            {navItem('DJ Mix', '/browse/mixes')}
             {navItem('Charts', '/browse/charts')}
+
 
             {navItem('Profile', '/listener/profile')}
             <button
@@ -189,7 +191,10 @@ const ListenerNav = () => {
 
         <div className={`ln-mobile-menu ${menuOpen ? 'open' : ''}`}>
           {navItem('Browse', '/browse')}
+          {navItem('DJ Mix', '/browse/mixes')}
           {navItem('Charts', '/browse/charts')}
+
+
           {navItem('Profile', '/listener/profile')}
           {navItem('Wallet', '/listener/wallet')}
           <button

@@ -1,0 +1,651 @@
+'use client';
+
+import { useState, useEffect, useRef } from "react";
+import { v4 as uuidv4 } from 'uuid';
+import { useAuthGuard } from '@/utils/useAuthGuard';
+import ListenerNav from '@/app/Components/Listener/ListenerNav';
+import { TipSuccessToast } from '@/app/Components/Listener/TipModal';
+import { MixTipModal } from '@/app/Components/DJ/MixTipModal';
+import {
+  getAllMixes,
+  getMixPlayToken,
+  recordMixStream,
+  updateMixStream,
+} from '@/utils/mixes_api_helper';
+
+// ─── Utilities (mirrors BrowseTracksComponent) ─────────────────────
+
+function formatDuration(seconds) {
+  if (!seconds) return '0:00';
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function nameToColor(name = '') {
+  const colors = [
+    ['#FF6B35', '#FF8C42'],
+    ['#00C896', '#00A878'],
+    ['#6C63FF', '#8B5CF6'],
+    ['#FF3CAC', '#FF6B9D'],
+    ['#F7C59F', '#E8A87C'],
+    ['#43C6AC', '#191654'],
+    ['#FC5C7D', '#6A3093'],
+    ['#11998E', '#38EF7D'],
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+}
+
+function MixAvatar({ mix, size = 56, playing = false }) {
+  const [colors] = useState(() => nameToColor(mix.dj_name));
+  const initial = (mix.title?.[0] || '?').toUpperCase();
+
+  if (mix.cover_image_url) {
+    return (
+      <img
+        src={mix.cover_image_url}
+        alt={mix.title}
+        style={{ width: size, height: size, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }}
+      />
+    );
+  }
+
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: 10, flexShrink: 0,
+      background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: size * 0.38, fontWeight: 800, color: 'white',
+      fontFamily: "'Syne', sans-serif",
+      position: 'relative', overflow: 'hidden',
+    }}>
+      {playing ? (
+        <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end', height: 20 }}>
+          {[1, 2, 3].map(i => (
+            <div key={i} style={{
+              width: 3, borderRadius: 2, background: 'white',
+              animation: `bar${i} 0.8s ease-in-out infinite alternate`,
+              animationDelay: `${i * 0.15}s`,
+            }} />
+          ))}
+        </div>
+      ) : initial}
+    </div>
+  );
+}
+
+// ─── Mini Player Bar ─────────────────────────────────────────────
+
+function PlayerBar({ mix, audioRef, isPlaying, onPlayPause, onClose, onNext, onPrev }) {
+  const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const progressRef = useRef(null);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const onTimeUpdate = () => {
+      setCurrentTime(audio.currentTime);
+      setDuration(audio.duration || 0);
+      setProgress(audio.duration ? (audio.currentTime / audio.duration) * 100 : 0);
+    };
+
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    return () => audio.removeEventListener('timeupdate', onTimeUpdate);
+  }, [audioRef]);
+
+  const handleSeek = (e) => {
+    const rect = progressRef.current.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    audioRef.current.currentTime = pct * (audioRef.current.duration || 0);
+  };
+
+  const colors = nameToColor(mix?.dj_name);
+
+  return (
+    <div style={{
+      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
+      background: '#0D0D0D',
+      borderTop: '1px solid #1f1f1f',
+      padding: '12px 24px 16px',
+      display: 'flex', flexDirection: 'column', gap: 8,
+    }}>
+      <div
+        ref={progressRef}
+        onClick={handleSeek}
+        style={{
+          height: 3, background: '#2a2a2a', borderRadius: 2,
+          cursor: 'pointer', position: 'relative',
+        }}
+      >
+        <div style={{
+          height: '100%', borderRadius: 2, width: `${progress}%`,
+          background: `linear-gradient(90deg, ${colors[0]}, ${colors[1]})`,
+          transition: 'width 0.1s linear',
+        }} />
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <MixAvatar mix={mix} size={44} playing={isPlaying} />
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{
+            margin: 0, color: '#fff', fontWeight: 700, fontSize: 14,
+            fontFamily: "'Syne', sans-serif",
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>{mix.title}</p>
+          <p style={{
+            margin: 0, color: '#888', fontSize: 12,
+            fontFamily: "'DM Sans', sans-serif",
+          }}>{mix.dj_name}</p>
+        </div>
+
+        <span style={{ color: '#555', fontSize: 12, fontFamily: 'monospace', flexShrink: 0 }}>
+          {formatDuration(Math.floor(currentTime))} / {formatDuration(Math.floor(duration))}
+        </span>
+
+        <button onClick={onPrev} style={{
+          background: 'none', border: 'none', color: '#555',
+          fontSize: 20, cursor: 'pointer', padding: '0 4px', flexShrink: 0,
+        }}>⏮</button>
+
+        <button onClick={onPlayPause} style={{
+          width: 44, height: 44, borderRadius: '50%', border: 'none',
+          background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})`,
+          color: 'white', fontSize: 18, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
+        }}>{isPlaying ? '⏸' : '▶'}</button>
+
+        <button onClick={onNext} style={{
+          background: 'none', border: 'none', color: '#555',
+          fontSize: 20, cursor: 'pointer', padding: '0 4px', flexShrink: 0,
+        }}>⏭</button>
+
+        <button onClick={onClose} style={{
+          background: 'none', border: 'none', color: '#555',
+          fontSize: 20, cursor: 'pointer', padding: '0 4px', flexShrink: 0,
+        }}>✕</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Mix Card ──────────────────────────────────────────────────
+
+function MixCard({ mix, isActive, isPlaying, onPlay, onTip }) {
+  const colors = nameToColor(mix.dj_name);
+  const genre = mix.genre || 'Unknown';
+
+  return (
+    <div
+      onClick={onPlay}
+      style={{
+        background: isActive ? '#161616' : '#111111',
+        border: isActive ? `1px solid ${colors[0]}44` : '1px solid #1e1e1e',
+        borderRadius: 14,
+        padding: '16px 56px 16px 16px',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+      onMouseEnter={e => { if (!isActive) e.currentTarget.style.borderColor = '#333'; }}
+      onMouseLeave={e => { if (!isActive) e.currentTarget.style.borderColor = '#1e1e1e'; }}
+    >
+      {isActive && (
+        <div style={{
+          position: 'absolute', left: 0, top: 0, bottom: 0, width: 3,
+          background: `linear-gradient(180deg, ${colors[0]}, ${colors[1]})`,
+          borderRadius: '14px 0 0 14px',
+        }} />
+      )}
+
+      <MixAvatar mix={mix} size={52} playing={isActive && isPlaying} />
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{
+          margin: '0 0 3px', color: isActive ? '#fff' : '#e0e0e0',
+          fontWeight: 700, fontSize: 15,
+          fontFamily: "'Syne', sans-serif",
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>
+          {mix.title}
+        </p>
+        <p style={{
+          margin: '0 0 6px', color: '#888', fontSize: 13,
+          fontFamily: "'DM Sans', sans-serif",
+        }}>
+          {mix.dj_name}
+        </p>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {genre && (
+            <span style={{
+              fontSize: 11, fontWeight: 600, padding: '2px 8px',
+              borderRadius: 20, background: `${colors[0]}22`,
+              color: colors[0], fontFamily: "'DM Sans', sans-serif",
+            }}>
+              {genre}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
+        <p style={{ margin: 0, color: '#555', fontSize: 13, fontFamily: 'monospace' }}>
+          {formatDuration(mix.duration)}
+        </p>
+
+        <button
+          onClick={(e) => { e.stopPropagation(); onTip(mix); }}
+          title="Tip this DJ"
+          style={{
+            width: 32, height: 32, borderRadius: '50%',
+            border: `1px solid ${colors[0]}44`,
+            background: `${colors[0]}15`,
+            color: colors[0], fontSize: 14, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0, transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = `${colors[0]}30`; }}
+          onMouseLeave={e => { e.currentTarget.style.background = `${colors[0]}15`; }}
+        >
+          💸
+        </button>
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            navigator.clipboard.writeText(`${window.location.origin}/m/${mix.id}`);
+          }}
+          title="Copy share link"
+          style={{
+            width: 32, height: 32, borderRadius: '50%',
+            border: '1px solid #2a2a2a', background: '#1a1a1a',
+            color: '#666', fontSize: 13, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          🔗
+        </button>
+      </div>
+
+      <div style={{
+        position: 'absolute', right: 16,
+        color: isActive ? colors[0] : '#444',
+        fontSize: 20, fontWeight: 700,
+        display: 'flex', alignItems: 'center',
+      }}>
+        {isActive && isPlaying ? '⏸' : '▶'}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Component ──────────────────────────────────────────────
+
+const BrowseMixesComponent = () => {
+  useAuthGuard('/listener/login', 'Listener');
+  const [mixes, setMixes] = useState([]);
+  const [filtered, setFiltered] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [search, setSearch] = useState('');
+  const [activeGenre, setActiveGenre] = useState('All');
+  const [currentMix, setCurrentMix] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const listenTimerRef = useRef(null);
+  const streamSessionRef = useRef(null);
+  const [tippingMix, setTippingMix] = useState(null);
+  const [tipToast, setTipToast] = useState(null);
+
+  const audioRef = useRef(null);
+  const [currentMixIndex, setCurrentMixIndex] = useState(null);
+  const queueRef = useRef([]); // always mirrors filtered
+
+  // ── Fetch mixes ──────────────────────────────────────────────
+  useEffect(() => {
+    const fetch = async () => {
+      try {
+        const res = await getAllMixes();
+        if (res.status === 'success') {
+          setMixes(res.data);
+          setFiltered(res.data);
+        } else {
+          setError('Failed to load mixes.');
+        }
+      } catch (err) {
+        console.error(err);
+        setError('Could not connect to server.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetch();
+  }, []);
+
+  // ── Derive genre list from data ────────────────────────────────
+  const genres = ['All', ...new Set(mixes.map(m => m.genre).filter(Boolean))];
+
+  // ── Filter logic ───────────────────────────────────────────────
+  useEffect(() => {
+    let result = mixes;
+    if (activeGenre !== 'All') {
+      result = result.filter(m => (m.genre || '').toLowerCase().includes(activeGenre.toLowerCase()));
+    }
+    if (search.trim()) {
+      const term = search.toLowerCase();
+      result = result.filter(m =>
+        (m.title   || '').toLowerCase().includes(term) ||
+        (m.dj_name || '').toLowerCase().includes(term) ||
+        (m.genre   || '').toLowerCase().includes(term)
+      );
+    }
+    setFiltered(result);
+  }, [search, activeGenre, mixes]);
+
+  // Keep queueRef in sync with filtered
+  useEffect(() => {
+    queueRef.current = filtered;
+  }, [filtered]);
+
+  // ── Play / pause logic ─────────────────────────────────────────
+
+  const handlePlay = async (mix) => {
+    if (!audioRef.current) return;
+    if (currentMix?.id === mix.id) {
+      if (isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        audioRef.current.play();
+        setIsPlaying(true);
+      }
+      return;
+    }
+    const index = queueRef.current.findIndex(m => m.id === mix.id);
+    if (index !== -1) setCurrentMixIndex(index);
+    await playMixByObject(mix);
+  };
+
+  const handlePlayPause = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play();
+      setIsPlaying(true);
+    }
+  };
+
+  const handleClose = () => {
+    audioRef.current?.pause();
+    stopListenTimer();
+    setCurrentMix(null);
+    setIsPlaying(false);
+  };
+
+  const recordStream = async (mix) => {
+    const session = uuidv4();
+    streamSessionRef.current = session;
+    try {
+      await recordMixStream({ mixId: mix.id, sessionId: session });
+      console.log("Mix stream recorded:", mix.title);
+      startListenTimer(session);
+    } catch (err) {
+      console.log("Mix stream record skipped:", err?.response?.data?.message);
+    }
+  };
+
+  const startListenTimer = (session) => {
+    if (listenTimerRef.current) clearInterval(listenTimerRef.current);
+    let elapsed = 0;
+    listenTimerRef.current = setInterval(async () => {
+      elapsed += 30;
+      try {
+        await updateMixStream(session, elapsed);
+        console.log(`Mix listen time updated: ${elapsed}s`);
+      } catch (err) {
+        console.error("Failed to update mix listen time:", err);
+      }
+    }, 30000);
+  };
+
+  const stopListenTimer = () => {
+    if (listenTimerRef.current) {
+      clearInterval(listenTimerRef.current);
+      listenTimerRef.current = null;
+    }
+  };
+
+  const handleTipSuccess = (data) => {
+    setTippingMix(null);
+    setTipToast({ message: data.message, newBalance: data.new_balance });
+  };
+
+  const handleNext = async () => {
+    const queue = queueRef.current;
+    if (!queue.length) return;
+    const nextIndex = currentMixIndex !== null
+      ? (currentMixIndex + 1) % queue.length
+      : 0;
+    setCurrentMixIndex(nextIndex);
+    await playMixByObject(queue[nextIndex]);
+  };
+
+  const handlePrev = async () => {
+    const queue = queueRef.current;
+    if (!queue.length) return;
+    const prevIndex = currentMixIndex !== null
+      ? (currentMixIndex - 1 + queue.length) % queue.length
+      : 0;
+    setCurrentMixIndex(prevIndex);
+    await playMixByObject(queue[prevIndex]);
+  };
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (listenTimerRef.current) clearInterval(listenTimerRef.current);
+    };
+  }, []);
+
+  const playMixByObject = async (mix) => {
+    try {
+      const res = await getMixPlayToken(mix.id);
+
+      const backendBase = (process.env.NEXT_PUBLIC_BACKEND_URL || '').trim() || 'http://localhost:8000';
+      const playUrl = `${backendBase}${res.play_url}`;
+
+      stopListenTimer();
+      audioRef.current.src = playUrl;
+      audioRef.current.load();
+      await audioRef.current.play();
+      setCurrentMix(mix);
+      setIsPlaying(true);
+      recordStream(mix);
+    } catch (err) {
+      console.error("Mix playback failed:", err);
+    }
+  };
+
+  // ── Render ─────────────────────────────────────────────────────
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+        @keyframes bar1 { from { height: 6px; } to { height: 18px; } }
+        @keyframes bar2 { from { height: 10px; } to { height: 14px; } }
+        @keyframes bar3 { from { height: 4px; } to { height: 20px; } }
+
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(16px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .mix-card-anim { animation: fadeUp 0.35s ease both; }
+
+        .search-input::placeholder { color: #444; }
+        .search-input:focus { outline: none; border-color: #FF6B35 !important; }
+
+        .genre-pill:hover { background: #222 !important; color: #fff !important; }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #0a0a0a; }
+        ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
+      `}</style>
+
+      <audio ref={audioRef} onEnded={handleNext} />
+      <ListenerNav />
+
+      <div style={{
+        minHeight: '100vh',
+        background: '#0a0a0a',
+        color: '#fff',
+        fontFamily: "'DM Sans', sans-serif",
+        paddingBottom: currentMix ? 100 : 40,
+      }}>
+        <div style={{ padding: '40px 32px 0', maxWidth: 900, margin: '0 auto' }}>
+          <h1 style={{
+            fontFamily: "'Syne', sans-serif",
+            fontSize: 36, fontWeight: 800,
+            margin: '0 0 6px',
+            letterSpacing: '-0.02em',
+          }}>
+            Browse Mixes
+          </h1>
+          <p style={{ color: '#555', fontSize: 15, margin: '0 0 28px' }}>
+            {mixes.length} mixes from local DJs
+          </p>
+
+          <input
+            className="search-input"
+            type="text"
+            placeholder="Search by title, DJ or genre…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{
+              width: '100%', boxSizing: 'border-box',
+              background: '#141414', border: '1px solid #222',
+              borderRadius: 12, padding: '13px 18px',
+              color: '#fff', fontSize: 15,
+              fontFamily: "'DM Sans', sans-serif",
+              marginBottom: 20,
+              transition: 'border-color 0.2s',
+            }}
+          />
+
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 28 }}>
+            {genres.map(g => (
+              <button
+                key={g}
+                className="genre-pill"
+                onClick={() => setActiveGenre(g)}
+                style={{
+                  padding: '6px 16px', borderRadius: 20, border: 'none',
+                  cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                  fontFamily: "'DM Sans', sans-serif",
+                  background: activeGenre === g ? '#FF6B35' : '#161616',
+                  color: activeGenre === g ? '#fff' : '#666',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {g}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 32px' }}>
+          {loading && (
+            <div style={{ textAlign: 'center', padding: 60, color: '#444' }}>
+              <div style={{
+                width: 36, height: 36, border: '3px solid #222',
+                borderTopColor: '#FF6B35', borderRadius: '50%',
+                animation: 'spin 0.7s linear infinite',
+                margin: '0 auto 16px',
+              }} />
+              <p style={{ margin: 0 }}>Loading mixes…</p>
+            </div>
+          )}
+
+          {error && (
+            <div style={{
+              padding: 24, background: '#1a0a0a',
+              border: '1px solid #3a1010', borderRadius: 12,
+              color: '#ff6b6b', fontSize: 14,
+            }}>
+              ⚠️ {error}
+            </div>
+          )}
+
+          {!loading && !error && filtered.length === 0 && (
+            <div style={{ textAlign: 'center', padding: 60, color: '#444' }}>
+              <p style={{ fontSize: 32, margin: '0 0 12px' }}>🎧</p>
+              <p style={{ margin: 0, fontSize: 15 }}>No mixes found</p>
+              <p style={{ margin: '6px 0 0', fontSize: 13, color: '#333' }}>
+                Try a different search or genre
+              </p>
+            </div>
+          )}
+
+          {!loading && !error && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {filtered.map((mix, i) => (
+                <div key={mix.id} className="mix-card-anim" style={{ animationDelay: `${i * 0.04}s` }}>
+                  <MixCard
+                    mix={mix}
+                    isActive={currentMix?.id === mix.id}
+                    isPlaying={isPlaying && currentMix?.id === mix.id}
+                    onPlay={() => handlePlay(mix)}
+                    onTip={(m) => setTippingMix(m)}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {currentMix && (
+        <PlayerBar
+          mix={currentMix}
+          audioRef={audioRef}
+          isPlaying={isPlaying}
+          onPlayPause={handlePlayPause}
+          onClose={handleClose}
+          onNext={handleNext}
+          onPrev={handlePrev}
+        />
+      )}
+
+      {tippingMix && (
+        <MixTipModal
+          mix={tippingMix}
+          onClose={() => setTippingMix(null)}
+          onSuccess={handleTipSuccess}
+        />
+      )}
+
+      {tipToast && (
+        <TipSuccessToast
+          message={tipToast.message}
+          newBalance={tipToast.newBalance}
+          onClose={() => setTipToast(null)}
+        />
+      )}
+    </>
+  );
+};
+
+export default BrowseMixesComponent;

@@ -41,6 +41,9 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     user_type = models.ForeignKey(UserType, on_delete=models.CASCADE)
 
+    is_artist = models.BooleanField(default=False)
+    is_dj = models.BooleanField(default=False)
+
     objects = UserManager()
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []  # Removed first/last name as required; add if needed

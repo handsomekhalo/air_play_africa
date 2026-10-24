@@ -94,13 +94,21 @@ def login_api(request):
     }
 
     # 🎨 Artist onboarding state
-    if user.user_type and user.user_type.name.lower() == "artist":
+    # Artist onboarding state
+    if user.is_artist:
         artist = Artist.objects.filter(user=user).first()
 
         response_data["artist"] = {
             "is_onboarded": artist.is_onboarded if artist else False,
             "onboarding_step": artist.onboarding_step if artist else 1,
         }
+    # if user.user_type and user.user_type.name.lower() == "artist":
+    #     artist = Artist.objects.filter(user=user).first()
+
+    #     response_data["artist"] = {
+    #         "is_onboarded": artist.is_onboarded if artist else False,
+    #         "onboarding_step": artist.onboarding_step if artist else 1,
+    #     }
 
     return Response(response_data, status=status.HTTP_200_OK)
 

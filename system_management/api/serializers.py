@@ -70,6 +70,8 @@ class UserModelSerializer(serializers.ModelSerializer):
             "date_joined",
             "user_type_id",
             "user_type__name",
+            "is_artist",
+            "is_dj",
         )
 
 
@@ -110,7 +112,8 @@ class ArtistCreateSerializer(serializers.ModelSerializer):
         ]
 
     def validate_email(self, value):
-        if User.objects.filter(email=value).exists():
+        # if User.objects.filter(email=value).exists():
+        if  User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError("Email already registered.")
         return value
 

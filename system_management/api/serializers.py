@@ -138,8 +138,19 @@ class ArtistCreateSerializer(serializers.ModelSerializer):
             first_name=first_name,
             last_name=last_name,
             user_type=artist_type,
-            is_active=True
+            is_active=True,
+            is_artist=True,
+            is_dj=False,
         )
+
+        # user = User.objects.create_user(
+        #     email=email,
+        #     password=password,
+        #     first_name=first_name,
+        #     last_name=last_name,
+        #     user_type=artist_type,
+        #     is_active=True
+        # )
 
         artist = Artist.objects.create(
             user=user,
@@ -450,12 +461,21 @@ class DJRegisterSerializer(serializers.ModelSerializer):
 
         # Create user with hashed password
         user = User.objects.create_user(
-            email      = validated_data['email'],
-            password   = validated_data['password'],
-            first_name = validated_data['first_name'],
-            last_name  = validated_data['last_name'],
-            user_type  = dj_type,
-        )
+        email=validated_data['email'],
+        password=validated_data['password'],
+        first_name=validated_data['first_name'],
+        last_name=validated_data['last_name'],
+        user_type=dj_type,
+        is_artist=False,
+        is_dj=True,
+    )
+        # user = User.objects.create_user(
+        #     email      = validated_data['email'],
+        #     password   = validated_data['password'],
+        #     first_name = validated_data['first_name'],
+        #     last_name  = validated_data['last_name'],
+        #     user_type  = dj_type,
+        # )
 
         # Credit account — needed so the DJ can send/receive tips and
         # top up like any other user
@@ -588,12 +608,21 @@ class ListenerRegisterSerializer(serializers.ModelSerializer):
  
         # Create user with hashed password
         user = User.objects.create_user(
-            email      = validated_data['email'],
-            password   = validated_data['password'],
-            first_name = validated_data['first_name'],
-            last_name  = validated_data['last_name'],
-            user_type  = listener_type,
-        )
+        email=validated_data['email'],
+        password=validated_data['password'],
+        first_name=validated_data['first_name'],
+        last_name=validated_data['last_name'],
+        user_type=listener_type,
+        is_artist=False,
+        is_dj=False,
+    )
+        # user = User.objects.create_user(
+        #     email      = validated_data['email'],
+        #     password   = validated_data['password'],
+        #     first_name = validated_data['first_name'],
+        #     last_name  = validated_data['last_name'],
+        #     user_type  = listener_type,
+        # )
 
          # ✅ Create credit account immediately — balance starts at 0
         CreditAccount.objects.create(user=user, balance=0)

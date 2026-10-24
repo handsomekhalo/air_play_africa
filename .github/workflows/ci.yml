@@ -1,0 +1,39 @@
+name: RandRail Test Suite
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run test suite (sqlite, no external services)
+        env:
+          # Dummy values — test_settings.py overrides DATABASES to sqlite
+          # and LIGHTNING_MOCK_MODE stays True, so nothing here touches
+          # Postgres, Backblaze, LND, or MoneyBadger.
+          SECRET_KEY: ci-test-secret-key
+          DB_NAME: dummy
+          DB_USER: dummy
+          DB_PASSWORD: dummy
+          DB_HOST: localhost
+          DB_PORT: "5432"
+          BACK_BLAZE_KEY_ID: dummy
+          BACK_BLAZE_BUCKET_NAME: dummy
+          BACK_BLAZE_APLLICATION_KEY: dummy
+        run: |
+          pytest -v

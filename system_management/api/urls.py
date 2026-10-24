@@ -10,6 +10,7 @@ urlpatterns = [
     path('login_api/', views.login_api, name="login_api"),
     path('register_user_api/', views.register_user_api, name='register_user_api'),
      path('register_artist_api/', views.register_artist_api, name='register_artist_api'),
+     path('register_dj_api/', views.register_dj_api, name='register_dj_api'),
     path('register_listener_api/', views.register_listener_api, name='register_listener_api'),
     path('get_artist_api/', views.get_artist_api, name="get_artist_api"),
     path('get_user_types_api/', views.get_user_types_api, name="get_user_types_api"),

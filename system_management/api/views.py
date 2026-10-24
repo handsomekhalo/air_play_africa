@@ -6,7 +6,7 @@ from requests import Response
 
 from media_streaming_management.models import Artist
 from system_management import constants
-from system_management.api.serializers import  AdminCreateSerializer, AdminUpdateSerializer, AdminUserListSerializer, ArtistCreateSerializer, ArtistOnboardingSerializer, ArtistSerializer, GetAlltUserModelSerializer, GetArtistProfileSerializer, GetArtistSerializer, ListenerCreateSerializer, ListenerRegisterSerializer, UpdateArtistProfileSerializer, UpdateListenerProfileSerializer, UserModelSerializer, UserTypeModelSerializer
+from system_management.api.serializers import  AdminCreateSerializer, AdminUpdateSerializer, AdminUserListSerializer, ArtistCreateSerializer, ArtistOnboardingSerializer, ArtistSerializer, DJRegisterSerializer, GetAlltUserModelSerializer, GetArtistProfileSerializer, GetArtistSerializer, ListenerCreateSerializer, ListenerRegisterSerializer, UpdateArtistProfileSerializer, UpdateListenerProfileSerializer, UserModelSerializer, UserTypeModelSerializer
 
 from system_management import constants
 from system_management.api.serializers import  UserModelSerializer
@@ -57,6 +57,7 @@ from django.db.models import Sum
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def login_api(request):
+    print('inside api')
     body = json.loads(request.body)
     email = body.get("email")
     password = body.get("password")
@@ -721,6 +722,55 @@ def register_user_api(request):
     }, status=status.HTTP_201_CREATED)
  
  
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def register_dj_api(request):
+    """
+    API endpoint: Register a new DJ.
+    Called internally by the register_dj proxy view.
+
+    Expected body:
+    {
+        "first_name":       "Jane",
+        "last_name":        "Doe",
+        "email":            "jane@example.com",
+        "password":         "securepass123",
+        "confirm_password": "securepass123"
+    }
+
+    Returns:
+    {
+        "status":  "success",
+        "message": "DJ registered successfully",
+        "user_id": 42
+    }
+    """
+    serializer = DJRegisterSerializer(data=request.data)
+
+    if not serializer.is_valid():
+        errors = serializer.errors
+        first_message = next(
+            (
+                v[0] if isinstance(v, list) else str(v)
+                for v in errors.values()
+            ),
+            "Registration failed.",
+        )
+        return Response({
+            "status":  "error",
+            "message": first_message,
+            "errors":  errors,
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    user = serializer.save()
+
+    return Response({
+        "status":  "success",
+        "message": "DJ registered successfully",
+        "user_id": user.id,
+    }, status=status.HTTP_201_CREATED)
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

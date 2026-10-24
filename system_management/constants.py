@@ -5,6 +5,7 @@ from decimal import Decimal
 ADMIN = "Admin"
 ARTIST = "Artist"
 LISTENER = "Listener"
+DJ = "DJ"
 # system_management/constants.py — add this
 MINIMUM_WITHDRAWAL_AMOUNT = 500 # 
 MINIMUM_TIP_AMOUNT = 1.00

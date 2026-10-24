@@ -240,6 +240,79 @@ def register_artist(request):
 
 
 @csrf_exempt
+def register_dj(request):
+    """
+    Public proxy view for DJ registration.
+    Forwards request to DRF register_dj_api.
+    """
+    if request.method != 'POST':
+        return JsonResponse({
+            "status": "error",
+            "message": "Method not allowed"
+        }, status=405)
+
+    try:
+        data = json.loads(request.body)
+
+        first_name = data.get('first_name')
+        last_name = data.get('last_name')
+        email = data.get('email')
+        password = data.get('password')
+        confirm_password = data.get('confirm_password')
+
+        if not all([first_name, last_name, email, password, confirm_password]):
+            return JsonResponse({
+                "status": "error",
+                "message": "All fields are required."
+            }, status=400)
+
+        if password != confirm_password:
+            return JsonResponse({
+                "status": "error",
+                "message": "Passwords do not match."
+            }, status=400)
+
+        url = f"{host_url(request)}{reverse_lazy('register_dj_api')}"
+        payload = json.dumps({
+            "first_name": first_name,
+            "last_name": last_name,
+            "email": email,
+            "password": password,
+            "confirm_password": confirm_password,
+        })
+
+        headers = {
+            'Content-Type': 'application/json',
+        }
+
+        response_data = api_connection(method="POST", url=url, headers=headers, data=payload)
+
+        if response_data and response_data.get("status") == "success":
+            return JsonResponse({
+                "status": "success",
+                "message": "DJ registered successfully",
+                "user_id": response_data.get("user_id")
+            }, status=201)
+
+        return JsonResponse({
+            "status": "error",
+            "message": response_data.get("message", "Registration failed"),
+            "errors": response_data.get("errors", {})
+        }, status=400)
+
+    except json.JSONDecodeError:
+        return JsonResponse({
+            "status": "error",
+            "message": "Invalid JSON data"
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            "status": "error",
+            "message": f"Server error occurred: {str(e)}"
+        }, status=500)
+
+
+@csrf_exempt
 def artist_onboarding_step_1(request):
     """
     Proxy view for Artist onboarding STEP 1.

@@ -1,6 +1,49 @@
 
 import json
+import os
+import json
+import logging
+import tempfile
+from datetime import timedelta
 
+from django.core import signing
+from django.shortcuts import get_object_or_404
+from django.utils.timezone import now
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from mutagen import File as MutagenFile
+import time
+import logging
+import requests
+
+from django.core import signing
+from django.http import (
+    HttpResponse,
+    HttpResponseForbidden,
+    StreamingHttpResponse,
+)
+from django.shortcuts import get_object_or_404
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+
+from system_management.backblazes3 import get_backblaze_client
+
+logger = logging.getLogger(__name__)
+
+from rest_framework import status
+from rest_framework.decorators import (
+    api_view,
+    permission_classes,
+    parser_classes,
+)
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.response import Response
+
+logger = logging.getLogger(__name__)
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404, redirect
 from rest_framework.decorators import api_view, permission_classes
@@ -14,7 +57,7 @@ from rest_framework import status
 from django.contrib.auth import get_user_model
 from django.db.models import Avg, Count
 
-from system_management.storage_util import upload_track_to_backblaze, upload_cover_image_to_backblaze
+from system_management.storage_util import upload_cover_image_to_backblaze
 from system_management.ai_services import analyze_track_with_ai
 from mutagen import File as MutagenFile
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -65,130 +108,408 @@ from rest_framework.decorators import api_view, permission_classes, parser_class
 
 
 
+def extract_audio_metadata(audio_file):
+    """
+    Extract metadata without creating another temporary file.
+    """
+    audio_file.seek(0)
 
-@api_view(['POST'])
+    metadata = {
+        "file_size": audio_file.size,
+        "duration": None,
+    }
+
+    try:
+        audio = MutagenFile(audio_file)
+
+        if audio and audio.info:
+            metadata["duration"] = int(audio.info.length)
+
+    except Exception:
+        logger.warning(
+            "Audio metadata extraction failed",
+            exc_info=True
+        )
+
+    finally:
+        audio_file.seek(0)
+
+    return metadata
+
+
+def upload_audio_to_b2(audio_file, key, content_type):
+    s3 = get_backblaze_client()
+
+    audio_file.seek(0)
+
+    logger.info(
+        "[B2] Starting upload: key=%s size=%s",
+        key,
+        audio_file.size
+    )
+
+    s3.upload_fileobj(
+        audio_file,
+        settings.BACK_BLAZE_BUCKET_NAME,
+        key,
+        ExtraArgs={
+            "ContentType": content_type,
+            "ContentDisposition": "inline",
+        }
+    )
+
+    logger.info("[B2] Transfer completed: %s", key)
+
+    return s3
+
+
+
+def verify_b2_upload(s3, key, expected_size):
+    metadata = s3.head_object(
+        Bucket=settings.BACK_BLAZE_BUCKET_NAME,
+        Key=key
+    )
+
+    actual_size = metadata["ContentLength"]
+
+    logger.info(
+        "[B2] Verification: expected=%s actual=%s",
+        expected_size,
+        actual_size
+    )
+
+    if actual_size != expected_size:
+        raise RuntimeError(
+            f"Upload verification failed: "
+            f"expected {expected_size}, got {actual_size}"
+        )
+
+    return True
+
+import pathlib
+import mimetypes
+from urllib.parse import quote
+
+
+def upload_track_to_backblaze(audio_file, track_id, artist_name):
+    bucket = settings.BACK_BLAZE_BUCKET_NAME
+
+    sanitized_artist = (
+        artist_name.strip()
+        .replace(" ", "_")
+        .lower()
+    )
+
+    extension = pathlib.Path(audio_file.name).suffix.lower()
+
+    key = f"tracks/{sanitized_artist}/{track_id}{extension}"
+
+    content_type = (
+        mimetypes.guess_type(audio_file.name)[0]
+        or "application/octet-stream"
+    )
+
+    s3 = upload_audio_to_b2(
+        audio_file,
+        key,
+        content_type
+    )
+
+    verify_b2_upload(
+        s3,
+        key,
+        audio_file.size
+    )
+
+    encoded_key = quote(key, safe="/")
+
+    return (
+        f"https://s3.us-east-005.backblazeb2.com/"
+        f"{bucket}/{encoded_key}"
+    )
+
+@api_view(["POST"])
 @permission_classes([IsAuthenticated])
 @parser_classes([MultiPartParser, FormParser])
 def upload_track_api(request):
-    """
-    Upload track to Backblaze with AI analysis.
-    
-    Form-data:
-    - title: string
-    - genre: string (optional, AI will suggest)
-    - album: string (optional)
-    - audio_file: file
-    - cover_image: file (optional)
-    """
+    start_time = time.monotonic()
 
-    # 1. Ensure user is an artist
-    try:
-        artist = request.user.artist
-    except Artist.DoesNotExist:
+    print("[DRF] Upload API entered", flush=True)
+    print("[DRF] Files:", list(request.FILES.keys()), flush=True)
+
+    MAX_TRACK_SIZE = 15 * 1024 * 1024
+
+
+    artist = getattr(request.user, "artist", None)
+
+    if artist is None:
         return Response({
-            'status': 'error',
-            'message': 'Only artists can upload tracks.'
-        }, status=status.HTTP_403_FORBIDDEN)
+            "status": "error",
+            "message": "Only artists can upload tracks."
+        }, status=403)
 
-    # 2. Validate base data with serializer
-    serializer = UploadTrackSerializer(data=request.data, context={'request': request})
-    if not serializer.is_valid():
-        return Response({
-            'status': 'error',
-            'message': 'Validation failed.',
-            'errors': serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
+    serializer = UploadTrackSerializer(
+        data=request.data,
+        context={"request": request}
+    )
 
-    audio_file = request.FILES.get('audio_file')
-    cover_image = request.FILES.get('cover_image')
+    serializer.is_valid(raise_exception=True)
+
+    audio_file = request.FILES.get("audio_file")
+    print(f"Audio file received: {audio_file.name if audio_file else 'None'}")
+
+    cover_image = request.FILES.get("cover_image")
+
     if not audio_file:
         return Response({
-            'status': 'error',
-            'message': 'Audio file is required.'
-        }, status=status.HTTP_400_BAD_REQUEST)
+            "status": "error",
+            "message": "Audio file is required."
+        }, status=400)
 
-    # 3. Create the track record
-    track = serializer.save(artist=artist, status='uploading')
+    if audio_file.size > MAX_TRACK_SIZE:
+        return Response({
+            "status": "error",
+            "message": "Maximum track size is 15 MB."
+        }, status=413)
+
+    if audio_file.size == 0:
+        return Response({
+            "status": "error",
+            "message": "Audio file cannot be empty."
+        }, status=400)
+    track = None
 
     try:
-        # 4. Save temporarily for metadata extraction
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as temp_file:
-            for chunk in audio_file.chunks():
-                temp_file.write(chunk)
-            temp_path = temp_file.name
+        # Step 1: Create database record
+        track = serializer.save(
+            artist=artist,
+            status="uploading"
+        )
 
-        # 5. Extract basic metadata
-        audio = MutagenFile(temp_path)
-        if audio and audio.info:
-            track.duration = int(audio.info.length)
-        track.file_size = os.path.getsize(temp_path)
+        logger.info(
+            "[TRACK %s] Database record created",
+            track.id
+        )
 
-        # 6. AI analysis (optional)
-        artist_name = f"{artist.user.first_name} {artist.user.last_name}"
-        try:
-            ai_data = analyze_track_with_ai(temp_path, track.title, artist_name)
+        # Step 2: Extract metadata
+        metadata = extract_audio_metadata(audio_file)
 
-            if ai_data:
-                track.bpm = ai_data.get('bpm')
-                # ai_analysis = json.loads(ai_data.get('ai_analysis', '{}'))
-                raw_ai = ai_data.get('ai_analysis', '{}')
+        track.file_size = metadata["file_size"]
 
-                # Remove backticks and "json"
-                def clean_json_string(s: str):
-                    s = s.strip()
-                    if s.startswith("```"):
-                        s = s.strip("`")
-                        s = s.replace("json", "", 1).strip()
-                    return s
+        if metadata["duration"] is not None:
+            track.duration = metadata["duration"]
 
+        # Step 3: Upload audio
+        artist_name = (
+            f"{artist.user.first_name} "
+            f"{artist.user.last_name}"
+        ).strip() or f"Artist-{artist.id}"
 
-                cleaned = clean_json_string(raw_ai)
-                ai_analysis = json.loads(cleaned)
-                track.ai_genre = ai_analysis.get('genre', '')
-                track.ai_mood = ai_analysis.get('mood', '')
-                track.ai_description = ai_analysis.get('description', '')
-                track.ai_tags = ai_analysis.get('tags', [])
-        except Exception as e:
-            print(f"[AI Analysis] Failed: {e}")
+        logger.info(
+            "[TRACK %s] Starting Backblaze upload",
+            track.id
+        )
 
-        # 7. Upload to Backblaze
-        audio_file.seek(0)
-        stream_url = upload_track_to_backblaze(audio_file, track.id, artist_name)
-        if not stream_url:
-            track.status = 'failed'
-            track.save()
-            return Response({
-                'status': 'error',
-                'message': 'Failed to upload audio file to storage.'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        print("[DRF] Starting Backblaze upload", flush=True)
+
+        stream_url = upload_track_to_backblaze(
+            audio_file,
+            track.id,
+            artist_name
+        )
+        print(
+            "[DRF] Backblaze upload completed in:",
+            round(time.monotonic() - start_time, 2),
+            "seconds",
+            flush=True
+        )
+
+        logger.info(
+            "[TRACK %s] Backblaze upload verified",
+            track.id
+        )
+
         track.stream_url = stream_url
 
-        # 8. Upload cover image (optional)
+        # Step 4: Optional cover
         if cover_image:
-            cover_url = upload_cover_image_to_backblaze(cover_image, track.id, artist_name)
-            if cover_url:
-                track.cover_image_url = cover_url
+            try:
+                cover_image.seek(0)
 
-        # 9. Finalize
-        track.status = 'ready'
+                cover_url = upload_cover_image_to_backblaze(
+                    cover_image,
+                    track.id,
+                    artist_name
+                )
+
+                if cover_url:
+                    track.cover_image_url = cover_url
+
+            except Exception:
+                logger.exception(
+                    "[TRACK %s] Cover upload failed",
+                    track.id
+                )
+
+        # Step 5: Finalize
+        track.status = "ready"
         track.save()
 
-        # Cleanup
-        os.unlink(temp_path)
+        logger.info(
+            "[TRACK %s] Upload completed",
+            track.id
+        )
+
+        print("[DRF] Preparing success response", flush=True)
+        return Response({
+            "status": "success",
+            "message": "Track uploaded successfully.",
+            "data": TrackSerializer(
+                track,
+                context={"request": request}
+            ).data
+        }, status=201)
+
+    except Exception:
+        logger.exception(
+            "[UPLOAD] Failed for user %s",
+            request.user.id
+        )
+
+        if track is not None:
+            track.status = "failed"
+            track.save(update_fields=["status"])
 
         return Response({
-            'status': 'success',
-            'message': 'Track uploaded successfully!',
-            'data': TrackSerializer(track, context={'request': request}).data
-        }, status=status.HTTP_201_CREATED)
+            "status": "error",
+            "message": "Track upload failed."
+        }, status=500)
 
-    except Exception as e:
-        track.status = 'failed'
-        track.save()
-        return Response({
-            'status': 'error',
-            'message': f'Upload failed: {str(e)}'
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# @api_view(['POST'])
+# @permission_classes([IsAuthenticated])
+# @parser_classes([MultiPartParser, FormParser])
+# def upload_track_api(request):
+#     """
+#     Upload track to Backblaze with AI analysis.
+    
+#     Form-data:
+#     - title: string
+#     - genre: string (optional, AI will suggest)
+#     - album: string (optional)
+#     - audio_file: file
+#     - cover_image: file (optional)
+#     """
+
+#     # 1. Ensure user is an artist
+#     try:
+#         artist = request.user.artist
+#     except Artist.DoesNotExist:
+#         return Response({
+#             'status': 'error',
+#             'message': 'Only artists can upload tracks.'
+#         }, status=status.HTTP_403_FORBIDDEN)
+
+#     # 2. Validate base data with serializer
+#     serializer = UploadTrackSerializer(data=request.data, context={'request': request})
+#     if not serializer.is_valid():
+#         return Response({
+#             'status': 'error',
+#             'message': 'Validation failed.',
+#             'errors': serializer.errors
+#         }, status=status.HTTP_400_BAD_REQUEST)
+
+#     audio_file = request.FILES.get('audio_file')
+#     cover_image = request.FILES.get('cover_image')
+#     if not audio_file:
+#         return Response({
+#             'status': 'error',
+#             'message': 'Audio file is required.'
+#         }, status=status.HTTP_400_BAD_REQUEST)
+
+#     # 3. Create the track record
+#     track = serializer.save(artist=artist, status='uploading')
+
+#     try:
+#         # 4. Save temporarily for metadata extraction
+#         with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as temp_file:
+#             for chunk in audio_file.chunks():
+#                 temp_file.write(chunk)
+#             temp_path = temp_file.name
+
+#         # 5. Extract basic metadata
+#         audio = MutagenFile(temp_path)
+#         if audio and audio.info:
+#             track.duration = int(audio.info.length)
+#         track.file_size = os.path.getsize(temp_path)
+
+#         # 6. AI analysis (optional)
+#         artist_name = f"{artist.user.first_name} {artist.user.last_name}"
+#         try:
+#             ai_data = analyze_track_with_ai(temp_path, track.title, artist_name)
+
+#             if ai_data:
+#                 track.bpm = ai_data.get('bpm')
+#                 # ai_analysis = json.loads(ai_data.get('ai_analysis', '{}'))
+#                 raw_ai = ai_data.get('ai_analysis', '{}')
+
+#                 # Remove backticks and "json"
+#                 def clean_json_string(s: str):
+#                     s = s.strip()
+#                     if s.startswith("```"):
+#                         s = s.strip("`")
+#                         s = s.replace("json", "", 1).strip()
+#                     return s
+
+
+#                 cleaned = clean_json_string(raw_ai)
+#                 ai_analysis = json.loads(cleaned)
+#                 track.ai_genre = ai_analysis.get('genre', '')
+#                 track.ai_mood = ai_analysis.get('mood', '')
+#                 track.ai_description = ai_analysis.get('description', '')
+#                 track.ai_tags = ai_analysis.get('tags', [])
+#         except Exception as e:
+#             print(f"[AI Analysis] Failed: {e}")
+
+#         # 7. Upload to Backblaze
+#         audio_file.seek(0)
+#         stream_url = upload_track_to_backblaze(audio_file, track.id, artist_name)
+#         if not stream_url:
+#             track.status = 'failed'
+#             track.save()
+#             return Response({
+#                 'status': 'error',
+#                 'message': 'Failed to upload audio file to storage.'
+#             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#         track.stream_url = stream_url
+
+#         # 8. Upload cover image (optional)
+#         if cover_image:
+#             cover_url = upload_cover_image_to_backblaze(cover_image, track.id, artist_name)
+#             if cover_url:
+#                 track.cover_image_url = cover_url
+
+#         # 9. Finalize
+#         track.status = 'ready'
+#         track.save()
+
+#         # Cleanup
+#         os.unlink(temp_path)
+
+#         return Response({
+#             'status': 'success',
+#             'message': 'Track uploaded successfully!',
+#             'data': TrackSerializer(track, context={'request': request}).data
+#         }, status=status.HTTP_201_CREATED)
+
+#     except Exception as e:
+#         track.status = 'failed'
+#         track.save()
+#         return Response({
+#             'status': 'error',
+#             'message': f'Upload failed: {str(e)}'
+#         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['GET'])
@@ -249,7 +570,7 @@ def my_tracks_api(request):
             "data": []
         }, status=status.HTTP_200_OK)
 
-    tracks = Track.objects.filter(artist=artist)
+    tracks = Track.objects.filter(artist=artist,status="ready")
     return Response({
         "status": "success",
         "data": TrackSerializer(tracks, many=True).data
@@ -348,28 +669,85 @@ def proxy_play_track_api(request, track_id):
 
 
 
+
+
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_play_token_api(request, track_id):
-    artist = request.user.artist
-    track = get_object_or_404(Track, id=track_id)
 
-    if track.artist != artist:
-        return Response({"error": "Unauthorized"}, status=403)
+    track = get_object_or_404(
+        Track.objects.select_related("artist"),
+        id=track_id
+    )
+
+    # Determine whether the user owns this track
+    artist = getattr(request.user, "artist", None)
+
+    is_owner = (
+        artist is not None
+        and track.artist_id == artist.id
+    )
+
+    # Only ready tracks are playable by other users
+    if not is_owner and track.status != "ready":
+        return Response({
+            "status": "error",
+            "message": "This track is not available for playback."
+        }, status=403)
+
+    # Ensure an audio file exists
+    if not track.stream_url:
+        return Response({
+            "status": "error",
+            "message": "This track has no audio source."
+        }, status=404)
+
+    # Generate a 5-minute signed token
+    expires_at = now() + timedelta(minutes=5)
 
     payload = {
         "track_id": track.id,
-        "exp": (now() + timedelta(seconds=30)).timestamp()
+        "exp": expires_at.timestamp(),
     }
 
-    token = signing.dumps(payload)
+    token = signing.dumps(payload, salt="airplay-track-stream")
 
     return Response({
         "status": "success",
-        # "play_url": f"/media_streaming_management_api/play/{token}/"
-        "play_url":f"/media_streaming_management_api/play_with_token_api/{token}/"
-
+        "play_url": (
+            "/media_streaming_management_api/"
+            f"play_with_token_api/{token}/"
+        ),
+        "expires_at": expires_at.isoformat()
     })
+
+# @api_view(["GET"])
+# @permission_classes([IsAuthenticated])
+# def get_play_token_api(request, track_id):
+#     artist = request.user.artist
+#     track = get_object_or_404(Track, id=track_id)
+
+#     if track.artist != artist:
+#         return Response({"error": "Unauthorized"}, status=403)
+
+#     payload = {
+#         "track_id": track.id,
+#         "exp": (now() + timedelta(seconds=30)).timestamp()
+#     }
+
+#     token = signing.dumps(payload)
+
+#     return Response({
+#         "status": "success",
+#         # "play_url": f"/media_streaming_management_api/play/{token}/"
+#         "play_url":f"/media_streaming_management_api/play_with_token_api/{token}/"
+
+#     })
+
+
+
 
 
 
@@ -377,44 +755,176 @@ def get_play_token_api(request, track_id):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def play_with_token_api(request, token):
+
+    # 1. Validate signed playback token
     try:
-        data = signing.loads(token, max_age=30)
+     
+        data = signing.loads(
+    token,
+    salt="airplay-track-stream",
+    max_age=300
+)
 
-        if time.time() > data["exp"]:
+    except signing.SignatureExpired:
+        logger.warning("Playback token expired")
+        return HttpResponseForbidden("Token expired")
+
+    except signing.BadSignature:
+        logger.warning("Invalid playback token")
+        return HttpResponseForbidden("Invalid token")
+
+    # 2. Validate token payload
+    if not isinstance(data, dict):
+        return HttpResponseForbidden("Invalid token payload")
+
+    track_id = data.get("track_id")
+    expires_at = data.get("exp")
+
+    if not track_id or expires_at is None:
+        return HttpResponseForbidden("Invalid token payload")
+
+    try:
+        if time.time() > float(expires_at):
             return HttpResponseForbidden("Token expired")
+    except (TypeError, ValueError):
+        return HttpResponseForbidden("Invalid expiration")
 
-        track = get_object_or_404(Track, id=data["track_id"])
+    # 3. Retrieve track
+    track = get_object_or_404(Track, id=track_id)
 
-        if not track.stream_url:
-            return HttpResponseForbidden("No stream")
+    if track.status != "ready":
+        return HttpResponseForbidden("Track not ready")
 
-        headers = {}
-        if "HTTP_RANGE" in request.META:
-            headers["Range"] = request.META["HTTP_RANGE"]
+    if not track.stream_url:
+        return HttpResponseForbidden("No stream")
 
-        r = requests.get(
+    # 4. Prepare range headers
+    headers = {}
+
+    range_header = request.headers.get("Range")
+
+    if range_header:
+        headers["Range"] = range_header
+
+    # 5. Request audio from Backblaze
+    try:
+        upstream = requests.get(
             track.stream_url,
             headers=headers,
             stream=True,
+            timeout=(10, 60),
+            allow_redirects=True,
         )
 
-        response = StreamingHttpResponse(
-            r.iter_content(chunk_size=8192),
-            status=r.status_code,
-            content_type=r.headers.get("Content-Type", "audio/mpeg"),
+    except requests.RequestException:
+        logger.exception(
+            "Backblaze request failed for track %s",
+            track.id
         )
 
+        return HttpResponse(
+            "Audio storage temporarily unavailable",
+            status=502
+        )
+
+    # 6. Inspect upstream response
+    logger.info(
+        "Track %s upstream status: %s",
+        track.id,
+        upstream.status_code
+    )
+
+    if upstream.status_code not in (200, 206):
+        logger.error(
+            "Backblaze rejected track %s with status %s",
+            track.id,
+            upstream.status_code
+        )
+
+        upstream.close()
+
+        return HttpResponse(
+            "Audio source unavailable",
+            status=502
+        )
+
+    # 7. Stream and close upstream connection
+    def audio_stream():
+        try:
+            for chunk in upstream.iter_content(chunk_size=65536):
+                if chunk:
+                    yield chunk
+        finally:
+            upstream.close()
+
+    response = StreamingHttpResponse(
+        audio_stream(),
+        status=upstream.status_code,
+        content_type=upstream.headers.get(
+            "Content-Type",
+            "audio/mpeg"
+        ),
+    )
+
+    # 8. Forward streaming headers
+    for header in (
+        "Content-Range",
+        "Content-Length",
+        "Accept-Ranges",
+        "ETag",
+        "Last-Modified",
+    ):
+        if header in upstream.headers:
+            response[header] = upstream.headers[header]
+
+    if "Accept-Ranges" not in response:
         response["Accept-Ranges"] = "bytes"
 
-        if "Content-Range" in r.headers:
-            response["Content-Range"] = r.headers["Content-Range"]
-        if "Content-Length" in r.headers:
-            response["Content-Length"] = r.headers["Content-Length"]
+    response["Cache-Control"] = "private, no-store"
 
-        return response
+    return response
 
-    except signing.BadSignature:
-        return HttpResponseForbidden("Invalid token")
+# @api_view(["GET"])
+# @permission_classes([AllowAny])
+# def play_with_token_api(request, token):
+#     try:
+#         data = signing.loads(token, max_age=30)
+
+#         if time.time() > data["exp"]:
+#             return HttpResponseForbidden("Token expired")
+
+#         track = get_object_or_404(Track, id=data["track_id"])
+
+#         if not track.stream_url:
+#             return HttpResponseForbidden("No stream")
+
+#         headers = {}
+#         if "HTTP_RANGE" in request.META:
+#             headers["Range"] = request.META["HTTP_RANGE"]
+
+#         r = requests.get(
+#             track.stream_url,
+#             headers=headers,
+#             stream=True,
+#         )
+
+#         response = StreamingHttpResponse(
+#             r.iter_content(chunk_size=8192),
+#             status=r.status_code,
+#             content_type=r.headers.get("Content-Type", "audio/mpeg"),
+#         )
+
+#         response["Accept-Ranges"] = "bytes"
+
+#         if "Content-Range" in r.headers:
+#             response["Content-Range"] = r.headers["Content-Range"]
+#         if "Content-Length" in r.headers:
+#             response["Content-Length"] = r.headers["Content-Length"]
+
+#         return response
+
+#     except signing.BadSignature:
+#         return HttpResponseForbidden("Invalid token")
 
 
 @api_view(['PATCH'])

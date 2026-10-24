@@ -9,14 +9,15 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.urls import reverse, reverse_lazy
 from django.views.decorators.csrf import csrf_exempt
 # Create your views here.
+import logging
+import time
+
+
+logger = logging.getLogger(__name__)
+
 
 @csrf_exempt
 def upload_track(request):
-
-    """
-    Proxy view to upload a track (multipart/form-data).
-    Forwards request to DRF upload_track_api.
-    """
 
     if request.method != "POST":
         return JsonResponse({
@@ -24,79 +25,223 @@ def upload_track(request):
             "message": "Method not allowed"
         }, status=405)
 
+    start_time = time.monotonic()
+
     try:
-        # 1. Extract token
         auth_header = request.headers.get("Authorization", "")
-        token = None
 
         if auth_header.startswith("Token "):
-            token = auth_header.split("Token ")[-1]
+            token = auth_header[len("Token "):]
         elif auth_header.startswith("Bearer "):
-            token = auth_header.split("Bearer ")[-1]
+            token = auth_header[len("Bearer "):]
+        else:
+            return JsonResponse({
+                "status": "error",
+                "message": "Authorization token required"
+            }, status=401)
 
         if not token:
             return JsonResponse({
                 "status": "error",
-                "message": "Authorization token is required."
+                "message": "Authorization token required"
             }, status=401)
 
-        # 2. Prepare headers (DO NOT set Content-Type manually for multipart)
         headers = {
             "Authorization": f"Token {token}"
         }
 
-        # 3. Build API URL
-        url_path = reverse_lazy("upload_track_api")
-        upload_url = f"{host_url(request)}{url_path}"
+        upload_url = (
+            f"{host_url(request)}"
+            f"{reverse('upload_track_api')}"
+        )
 
-        # 4. Forward files
+        print("[PROXY] Content-Type:", request.content_type)
+        print("[PROXY] Content-Length:", request.META.get("CONTENT_LENGTH"))
+        print("[PROXY] POST fields:", list(request.POST.keys()))
+        print("[PROXY] FILES:", list(request.FILES.keys()))
         files = {}
+
         if "audio_file" in request.FILES:
             audio = request.FILES["audio_file"]
-            files["audio_file"] = (audio.name, audio, audio.content_type)
+            audio.seek(0)
+
+            files["audio_file"] = (
+                audio.name,
+                audio,
+                audio.content_type
+            )
 
         if "cover_image" in request.FILES:
             cover = request.FILES["cover_image"]
-            files["cover_image"] = (cover.name, cover, cover.content_type)
+            cover.seek(0)
 
-        # 5. Forward form fields
+            files["cover_image"] = (
+                cover.name,
+                cover,
+                cover.content_type
+            )
+
         data = request.POST.dict()
 
-        # 6. Call DRF API
+        logger.info(
+            "[PROXY] Forwarding upload: filename=%s size=%s",
+            request.FILES.get("audio_file").name
+            if request.FILES.get("audio_file") else None,
+            request.FILES.get("audio_file").size
+            if request.FILES.get("audio_file") else None,
+        )
+
         response = requests.post(
             upload_url,
             headers=headers,
             data=data,
             files=files,
-            timeout=120
+            timeout=(15, 300)
         )
 
-        # 7. Handle API errors
-        if response.status_code not in (200, 201):
+        elapsed = time.monotonic() - start_time
+
+        logger.info(
+            "[PROXY] API returned status=%s elapsed=%.2fs",
+            response.status_code,
+            elapsed
+        )
+
+        try:
+            payload = response.json()
+
+        except ValueError:
+            logger.error(
+                "[PROXY] API returned non-JSON response: %s",
+                response.text[:500]
+            )
+
             return JsonResponse({
                 "status": "error",
-                "message": f"API returned {response.status_code}",
-                "details": response.text
-            }, status=response.status_code)
+                "message": "Upload API returned an invalid response"
+            }, status=502)
 
-        # 8. Success response
         return JsonResponse(
-            response.json(),
+            payload,
             status=response.status_code,
-            safe=False
+            safe=not isinstance(payload, list)
         )
 
-    except requests.exceptions.RequestException as e:
+    except requests.exceptions.Timeout:
+        logger.exception("[PROXY] Upload request timed out")
+
         return JsonResponse({
             "status": "error",
-            "message": f"Request failed: {str(e)}"
+            "message": (
+                "Upload processing timed out. "
+                "Check the track status before retrying."
+            )
+        }, status=504)
+
+    except requests.exceptions.RequestException:
+        logger.exception("[PROXY] Upload forwarding failed")
+
+        return JsonResponse({
+            "status": "error",
+            "message": "Could not reach the upload API"
+        }, status=502)
+
+    except Exception:
+        logger.exception("[PROXY] Unexpected upload error")
+
+        return JsonResponse({
+            "status": "error",
+            "message": "Upload proxy encountered an error"
         }, status=500)
 
-    except Exception as e:
-        return JsonResponse({
-            "status": "error",
-            "message": f"Server error: {str(e)}"
-        }, status=500)
+
+# @csrf_exempt
+# def upload_track(request):
+
+#     """
+#     Proxy view to upload a track (multipart/form-data).
+#     Forwards request to DRF upload_track_api.
+#     """
+
+#     if request.method != "POST":
+#         return JsonResponse({
+#             "status": "error",
+#             "message": "Method not allowed"
+#         }, status=405)
+
+#     try:
+#         # 1. Extract token
+#         auth_header = request.headers.get("Authorization", "")
+#         token = None
+
+#         if auth_header.startswith("Token "):
+#             token = auth_header.split("Token ")[-1]
+#         elif auth_header.startswith("Bearer "):
+#             token = auth_header.split("Bearer ")[-1]
+
+#         if not token:
+#             return JsonResponse({
+#                 "status": "error",
+#                 "message": "Authorization token is required."
+#             }, status=401)
+
+#         # 2. Prepare headers (DO NOT set Content-Type manually for multipart)
+#         headers = {
+#             "Authorization": f"Token {token}"
+#         }
+
+#         # 3. Build API URL
+#         url_path = reverse_lazy("upload_track_api")
+#         upload_url = f"{host_url(request)}{url_path}"
+
+#         # 4. Forward files
+#         files = {}
+#         if "audio_file" in request.FILES:
+#             audio = request.FILES["audio_file"]
+#             files["audio_file"] = (audio.name, audio, audio.content_type)
+
+#         if "cover_image" in request.FILES:
+#             cover = request.FILES["cover_image"]
+#             files["cover_image"] = (cover.name, cover, cover.content_type)
+
+#         # 5. Forward form fields
+#         data = request.POST.dict()
+
+#         # 6. Call DRF API
+#         response = requests.post(
+#             upload_url,
+#             headers=headers,
+#             data=data,
+#             files=files,
+#             timeout=120
+#         )
+
+#         # 7. Handle API errors
+#         if response.status_code not in (200, 201):
+#             return JsonResponse({
+#                 "status": "error",
+#                 "message": f"API returned {response.status_code}",
+#                 "details": response.text
+#             }, status=response.status_code)
+
+#         # 8. Success response
+#         return JsonResponse(
+#             response.json(),
+#             status=response.status_code,
+#             safe=False
+#         )
+
+#     except requests.exceptions.RequestException as e:
+#         return JsonResponse({
+#             "status": "error",
+#             "message": f"Request failed: {str(e)}"
+#         }, status=500)
+
+#     except Exception as e:
+#         return JsonResponse({
+#             "status": "error",
+#             "message": f"Server error: {str(e)}"
+#         }, status=500)
 
 
 
@@ -220,7 +365,7 @@ def proxy_get_play_token(request, track_id):
 @csrf_exempt
 def retrieve_all_tracks(request):
     """
-    Proxy view to retrieve all ready tracks.
+    Proxy view to retriplay_with_token_apieve all ready tracks.
     Supports optional query params: ?genre=&mood=&artist=
     """
     if request.method != "GET":

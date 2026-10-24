@@ -26,7 +26,7 @@ export const getAllMixes = async ({ genre, search } = {}) => {
 };
 
 export const getPublicMix = async (mixId) => {
-  const response = await backendApi.get(`/dj_mix_management/get_public_mix/${mixId}/`);
+  const response = await backendApi.get(`/dj_mix_management/get_public_mix/$    {mix_id}/`);
   return response.data;
 };
 

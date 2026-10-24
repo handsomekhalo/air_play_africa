@@ -32,127 +32,116 @@ export default function LoginPage() {
       });
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setErrors('');
-    setIsSubmitting(true);
 
-    const csrfFromCookies = document.cookie
-      .split('; ')
-      .find((row) => row.startsWith('csrftoken='))?.split('=')[1];
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setErrors('');
+  setIsSubmitting(true);
 
-    const tokenToUse = csrfToken || csrfFromCookies;
+  const csrfFromCookies = document.cookie
+    .split('; ')
+    .find((row) => row.startsWith('csrftoken='))
+    ?.split('=')[1];
 
-    if (!tokenToUse) {
-      setErrors('CSRF token missing. Please refresh and try again.');
-      setIsSubmitting(false);
+  const tokenToUse = csrfToken || csrfFromCookies;
+
+  if (!tokenToUse) {
+    setErrors('CSRF token missing. Please refresh and try again.');
+    setIsSubmitting(false);
+    return;
+  }
+
+  try {
+    console.log('Sending login request...');
+
+    const response = await backendApi.post(
+      '/system_management_api/login_api/',
+      { email, password },
+      {
+        headers: {
+          'X-CSRFToken': tokenToUse,
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true,
+      }
+    );
+
+    console.log('Login response:', response.data);
+
+    if (
+      response.data.status !== 'success' ||
+      !response.data.token
+    ) {
+      setErrors(response.data.message || 'Login failed.');
       return;
     }
 
-    try {
-      console.log('Sending login request...');
-      const response = await backendApi.post(
-        '/system_management_api/login_api/',
-        { email, password },
-        {
-          headers: {
-            'X-CSRFToken': tokenToUse,
-            'Content-Type': 'application/json',
-          },
-          withCredentials: true,
-        }
+    const { token, user, artist } = response.data;
+
+    if (!user) {
+      setErrors('Login response is missing user information.');
+      return;
+    }
+
+    // Save authentication
+    authLogin(token, tokenToUse);
+
+    localStorage.setItem('authToken', token);
+    localStorage.setItem('csrfToken', tokenToUse);
+    localStorage.setItem('user', JSON.stringify(user));
+
+    // Identify user role
+    const userType = user.user_type__name?.toLowerCase();
+
+    console.log('Logged-in user type:', userType);
+
+    if (userType === 'artist') {
+      if (!artist || artist.is_onboarded === false) {
+        router.replace(
+          `/artist-onboarding?step=${artist?.onboarding_step || 1}`
+        );
+        return;
+      }
+
+      router.replace('/artist/dashboard');
+      return;
+    }
+
+    if (userType === 'dj') {
+      router.replace('/browse/mixes');
+      return;
+    }
+
+    if (userType === 'listener') {
+      router.replace('/browse');
+      return;
+    }
+
+    if (userType === 'admin') {
+      router.replace('/admin/dashboard');
+      return;
+    }
+
+    setErrors('Unknown account type. Please contact support.');
+
+  } catch (err) {
+    console.error('Login error:', err);
+
+    if (err.response) {
+      console.error('Backend error:', err.response.data);
+
+      setErrors(
+        err.response.data?.message ||
+        'An error occurred during login.'
       );
-
-      console.log('Login response:', response.data);
- 
-      if (response.data.status === "success" && response.data.token) {
-  console.log('Login successful!');
-
-  const token = response.data.token;
-  const user = response.data.user;
-  const artist = response.data.artist; // 👈 IMPORTANT
-
-  // Store authentication data
-  authLogin(token, tokenToUse);
-  localStorage.setItem('authToken', token);
-  localStorage.setItem('csrfToken', tokenToUse);
-  localStorage.setItem('user', JSON.stringify(user));
-
-  // 🔐 ARTIST ONBOARDING DECISION (RIGHT HERE)
-  // if (user.role === 'artist') {
-  // if (user.user_type__name?.toLowerCase() === 'artist') {
-
-  //   if (!artist || artist.is_onboarded === false) {
-  //     // router.replace(
-  //     //   // `/artist/onboarding?step=${artist?.onboarding_step || 1}`
-  //     //      `/Artist_Onboarding?step=${artist?.onboarding_step || 1}`
-          
-  //     // );
-  //       router.replace(`/artist-onboarding?step=${artist?.onboarding_step || 1}`);
-
-  //     return;
-  //   }
-
-  //   router.replace('/artist/dashboard');
-  //         // router.replace('/Components/System_Management_Components/dashboard');
-    
-  //           return;
-  //         }
-  if (response.data.status === "success" && response.data.token) {
-  const token  = response.data.token;
-  const user   = response.data.user;
-  const artist = response.data.artist;
-
-  authLogin(token, tokenToUse);
-  localStorage.setItem('authToken', token);
-  localStorage.setItem('csrfToken', tokenToUse);
-  localStorage.setItem('user', JSON.stringify(user));
-
-  const userType = user.user_type__name?.toLowerCase();
-
-  if (userType === 'artist') {
-    if (!artist || artist.is_onboarded === false) {
-      router.replace(`/artist-onboarding?step=${artist?.onboarding_step || 1}`);
-      return;
+    } else {
+      setErrors('Network error. Please check your connection.');
     }
-    router.replace('/artist/dashboard');
-    return;
+  } finally {
+    setIsSubmitting(false);
   }
+};
 
-  if (userType === 'listener') {
-    router.replace('/browse');
-    return;
-  }
-
-  if (userType === 'admin') {
-    router.replace('/admin/dashboard');
-    return;
-  }
-
-  // Fallback for any other user type
-  setErrors('This login is for Admin and Artist accounts only. Listeners please use the listener login.');
-}
-
-          // fallback (admins, etc.)
-          // router.replace('/Components/System_Management_Components/dashboard');
-          router.replace('/admin/dashboard');
-        }
-
-      else {
-        console.log('Login failed:');
-        setErrors(response.data.message || 'Login failed. Try again.');
-      }
-    } catch (err) {
-      console.error('Login error:', err);
-      if (err.response) {
-        setErrors(err.response.data?.message || 'An error occurred during login.');
-      } else {
-        setErrors('Network error. Please check your connection.');
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   return (
     <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">

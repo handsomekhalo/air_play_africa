@@ -385,6 +385,92 @@ class ListenerCreateSerializer(serializers.ModelSerializer):
         return user
 
 
+class DJRegisterSerializer(serializers.ModelSerializer):
+    """
+    Serializer for registering a new DJ user.
+    Mirrors ListenerRegisterSerializer, but also creates the Artist +
+    ArtistEarnings rows a DJ needs — send_mix_tip_api resolves DJ earnings
+    via ArtistEarnings.objects.get_or_create(artist__user=mix.dj), which
+    requires an Artist row (and, for get_or_create's create path to succeed,
+    an ArtistEarnings row) to already exist for that user. Without this,
+    tipping a DJ with no prior Artist/ArtistEarnings record raises a
+    TypeError inside get_or_create.
+    """
+    confirm_password = serializers.CharField(write_only=True)
+    password         = serializers.CharField(write_only=True, min_length=8)
+    first_name       = serializers.CharField(required=True)
+    last_name        = serializers.CharField(required=True)
+    email            = serializers.EmailField(required=True)
+
+    class Meta:
+        model  = User
+        fields = (
+            'id',
+            'first_name',
+            'last_name',
+            'email',
+            'password',
+            'confirm_password',
+        )
+
+    # ── Validation ───────────────────────────────────────────────
+
+    def validate_email(self, value):
+        """Reject duplicate emails with a clear message."""
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError(
+                "An account with this email already exists."
+            )
+        return value.lower()
+
+    def validate(self, attrs):
+        """Passwords must match."""
+        if attrs['password'] != attrs['confirm_password']:
+            raise serializers.ValidationError({
+                'confirm_password': "Passwords do not match."
+            })
+        return attrs
+
+    # ── Create ───────────────────────────────────────────────────
+
+    @transaction.atomic
+    def create(self, validated_data):
+        validated_data.pop('confirm_password')
+
+        # Resolve the DJ UserType — must exist in DB
+        try:
+            dj_type = UserType.objects.get(name=constants.DJ)
+        except UserType.DoesNotExist:
+            raise serializers.ValidationError(
+                "DJ user type is not configured. Contact support."
+            )
+
+        # Create user with hashed password
+        user = User.objects.create_user(
+            email      = validated_data['email'],
+            password   = validated_data['password'],
+            first_name = validated_data['first_name'],
+            last_name  = validated_data['last_name'],
+            user_type  = dj_type,
+        )
+
+        # Credit account — needed so the DJ can send/receive tips and
+        # top up like any other user
+        CreditAccount.objects.create(user=user, balance=0)
+
+        # Artist + ArtistEarnings rows — required for send_mix_tip_api's
+        # earnings lookup to work (see docstring above). Marked already
+        # onboarded since DJs don't go through the artist onboarding flow.
+        artist = Artist.objects.create(
+            user=user,
+            is_onboarded=True,
+            onboarding_step=99,
+        )
+        ArtistEarnings.objects.create(artist=artist, balance_credits=0)
+
+        return user
+
+
 class AdminCreateSerializer(serializers.ModelSerializer):
     """Serializer to create Admin user"""
     first_name = serializers.CharField(write_only=True)
@@ -485,7 +571,7 @@ class ListenerRegisterSerializer(serializers.ModelSerializer):
         return attrs
  
     # ── Create ───────────────────────────────────────────────────
- 
+    @transaction.atomic
     def create(self, validated_data):
         validated_data.pop('confirm_password')
  

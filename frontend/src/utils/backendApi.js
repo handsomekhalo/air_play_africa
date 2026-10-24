@@ -1,37 +1,50 @@
-import axios from 'axios';
 
-// Create an Axios instance with a predefined configuration
+import axios from "axios";
 
 const backendApi = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
+  baseURL:
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:8000",
+
   withCredentials: true,
-  headers: {
-    "Content-Type": "application/json",
-  },
 });
 
-//
-// const backendApi = axios.create({
-//   // baseURL: 'http://52.14.111.23',
-//   baseURL: "http://127.0.0.1:8000",
-//     // 👈 Public IP of your EC2 instance
-//   withCredentials: true,          // Ensures cookies (like CSRF token) are sent
-//   headers: {
-//     'Content-Type': 'application/json',
-//   },
-// });
-
-// Request interceptor to add Authorization token
 backendApi.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      config.headers['Authorization'] = `Token ${token}`;  // ← Token not Bearer
+    const publicEndpoints = [
+      "/system_management_api/login_api/",
+      "/system_management/csrf/",
+      "/system_management_api/register_api/",
+    ];
+
+    const isPublicEndpoint = publicEndpoints.some(
+      (endpoint) => config.url?.split("?")[0] === endpoint
+    );
+
+    // Handle file uploads separately from JSON requests.
+    if (config.data instanceof FormData) {
+      // Let the browser/Axios set the multipart boundary.
+      config.headers.setContentType(undefined);
     }
+
+    // Public endpoints should not receive an old token.
+    if (isPublicEndpoint) {
+      delete config.headers.Authorization;
+      return config;
+    }
+
+    const token = localStorage.getItem("authToken");
+
+    if (token) {
+      config.headers.Authorization = `Token ${token}`;
+    } else {
+      delete config.headers.Authorization;
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
 );
-
 
 export default backendApi;

@@ -203,6 +203,7 @@ ALLOWED_HOSTS = [
     'localhost',
     '145.241.184.69',           # your raw IP
     '145.241.184.69.nip.io',    # nip.io domain
+    '56f5-102-38-124-42.ngrok-free.app',
 ]
 
 
@@ -212,6 +213,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://air-play-africa.vercel.app",
     "https://air-play-africa-git-development-titus-projects-cdab7abf.vercel.app",
     "https://clear-wave-eosin.vercel.app",
+    'https://56f5-102-38-124-42.ngrok-free.app',
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -223,6 +225,8 @@ CSRF_TRUSTED_ORIGINS = [
     "https://air-play-africa.vercel.app",
     "https://air-play-africa-git-development-titus-projects-cdab7abf.vercel.app",
     "https://clear-wave-eosin.vercel.app",
+    '56f5-102-38-124-42.ngrok-free.app,'
+    "https://56f5-102-38-124-42.ngrok-free.app",
 ]
 
 # CSRF_TRUSTED_ORIGINS = [
@@ -283,5 +287,6 @@ BACK_BLAZE_APLLICATION_KEY =config('BACK_BLAZE_APLLICATION_KEY')
 BACK_BLAZE_APLLICATION_KEY =config('BACK_BLAZE_APLLICATION_KEY')
 PAYSTACK_BASE_URL = config('PAYSTACK_BASE_URL')
 PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY')
-# FRONTEND_URL = 'http://localhost:3000'  # change for production
-FRONTEND_URL ="https://air-play-africa.vercel.app/"
+FRONTEND_URL = 'http://localhost:3000'  # change for production
+# FRONTEND_URL ="https://air-play-africa.vercel.app/"
+# FRONTEND_URL='https://56f5-102-38-124-42.ngrok-free.app/media_streaming_management_api/verify_topup_webhook/'

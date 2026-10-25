@@ -91,7 +91,19 @@ from django.db import transaction
 from decimal import Decimal
 from django.core.cache import cache
 from system_management import constants
+import hashlib
+import hmac
+import json
+import requests
 
+from decimal import Decimal
+
+from django.conf import settings
+from django.db import transaction
+from django.db.models import F
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
 from django.db.models.functions import TruncDate
 from django.db.models import Sum
 from datetime import timedelta
@@ -1167,19 +1179,29 @@ def initiate_topup_api(request):
     Body: { "amount_rands": 50 }
     Returns Paystack authorization URL to redirect to.
     """
-    amount_rands = request.data.get('amount_rands')
-    if not amount_rands or float(amount_rands) <= 0:
-        return Response({
-            'status': 'error',
-            'message': 'Please provide a valid amount.'
-        }, status=status.HTTP_400_BAD_REQUEST)
+    from decimal import Decimal, InvalidOperation
 
-    amount_rands = float(amount_rands)
-    credits_to_add = amount_rands  # 1 Rand = 1 credit, simple for now
+    try:
+        amount_rands = Decimal(str(request.data.get('amount_rands')))
+    except (InvalidOperation, TypeError, ValueError):
+        return Response(
+            {'status': 'error', 'message': 'Invalid amount'},
+            status=400
+        )
 
-    # Paystack expects amount in kobo/cents (smallest currency unit)
-    amount_in_cents = int(amount_rands * 100)
+    if (
+        not amount_rands.is_finite()
+        or amount_rands <= 0
+        or amount_rands.as_tuple().exponent < -2
+    ):
+        return Response(
+            {'status': 'error', 'message': 'Invalid amount'},
+            status=400
+        )
 
+    credits_to_add = amount_rands
+
+    amount_in_cents = int(amount_rands * Decimal('100'))
     headers = {
         'Authorization': f'Bearer {settings.PAYSTACK_SECRET_KEY}',
         'Content-Type': 'application/json',
@@ -1189,7 +1211,8 @@ def initiate_topup_api(request):
         'email': request.user.email,
         'amount': amount_in_cents,
         'currency': 'ZAR',
-        'callback_url': f'{settings.FRONTEND_URL}/listener/wallet/callback',
+        # 'callback_url': f'{settings.FRONTEND_URL}/listener/wallet/callback',
+        'callback_url': f'{settings.FRONTEND_URL.rstrip("/")}/listener/wallet/callback',
         'metadata': {
             'user_id': request.user.id,
             'credits_to_add': str(credits_to_add),
@@ -1329,65 +1352,137 @@ def send_tip_api(request):
 
 # No proxy needed for this one — Paystack calls it directly, not through your frontend, so the standard proxy pattern doesn't apply here.
 
+
+
+
 @api_view(['POST'])
-@permission_classes([AllowAny])  # Paystack calls this, not a logged-in user
+@permission_classes([AllowAny])
 def verify_topup_webhook(request):
-    """
-    Paystack calls this after a payment completes.
-    Must be idempotent — Paystack may retry this call.
-    """
 
-    event = request.data
-    event_type = event.get('event')
+    # 1. Verify Paystack signature using the original request body
+    signature = request.headers.get('X-Paystack-Signature', '')
 
-    event = request.data
-    event_type = event.get('event')
+    expected_signature = hmac.new(
+        settings.PAYSTACK_SECRET_KEY.encode('utf-8'),
+        request.body,
+        hashlib.sha512
+    ).hexdigest()
 
-    if event_type != 'charge.success':
-        # Ignore other event types for now
+    if not hmac.compare_digest(signature, expected_signature):
+        return Response(
+            {'status': 'error', 'message': 'Invalid signature'},
+            status=401
+        )
+
+    # 2. Read the webhook event
+    try:
+        event = json.loads(request.body)
+    except (ValueError, UnicodeDecodeError):
+        return Response(
+            {'status': 'error', 'message': 'Invalid payload'},
+            status=400
+        )
+
+    if event.get('event') != 'charge.success':
         return Response({'status': 'ignored'}, status=200)
 
     reference = event.get('data', {}).get('reference')
 
     if not reference:
-        return Response({'status': 'error', 'message': 'No reference provided.'}, status=400)
+        return Response(
+            {'status': 'error', 'message': 'Missing reference'},
+            status=400
+        )
 
+    # 3. Find the pending top-up
     try:
-        # topup = CreditTopUp.objects.get(paystack_ref=reference)
         topup = CreditTopUp.objects.get(reference=reference)
     except CreditTopUp.DoesNotExist:
-        return Response({'status': 'error', 'message': 'Top-up record not found.'}, status=404)
+        return Response(
+            {'status': 'error', 'message': 'Top-up not found'},
+            status=404
+        )
 
-    # Idempotency guard — if already processed, don't double-credit
     if topup.status == 'success':
-        return Response({'status': 'success', 'message': 'Already processed.'}, status=200)
+        return Response(
+            {'status': 'success', 'message': 'Already processed'},
+            status=200
+        )
 
-    # Verify with Paystack directly (don't trust webhook payload alone)
-    headers = {'Authorization': f'Bearer {settings.PAYSTACK_SECRET_KEY}'}
-    verify_url = f'{settings.PAYSTACK_BASE_URL}/transaction/verify/{reference}'
+    # 4. Verify the payment directly with Paystack
+    headers = {
+        'Authorization': f'Bearer {settings.PAYSTACK_SECRET_KEY}'
+    }
 
     try:
-        verify_response = requests.get(verify_url, headers=headers, timeout=30)
+        verify_response = requests.get(
+            f'{settings.PAYSTACK_BASE_URL}/transaction/verify/{reference}',
+            headers=headers,
+            timeout=30
+        )
+        verify_response.raise_for_status()
         verify_data = verify_response.json()
-    except requests.exceptions.RequestException as e:
-        return Response({'status': 'error', 'message': f'Verification failed: {str(e)}'}, status=500)
 
-    if not verify_data.get('status') or verify_data['data']['status'] != 'success':
-        topup.status = 'failed'
-        topup.save(update_fields=['status'])
-        return Response({'status': 'error', 'message': 'Payment not verified as successful.'}, status=400)
+    except (requests.exceptions.RequestException, ValueError):
+        return Response(
+            {'status': 'error', 'message': 'Verification unavailable'},
+            status=503
+        )
 
-    # Payment confirmed — credit the account atomically
+    payment = verify_data.get('data') or {}
+
+    if (
+        verify_data.get('status') is not True
+        or payment.get('status') != 'success'
+        or payment.get('reference') != reference
+    ):
+        return Response(
+            {'status': 'error', 'message': 'Payment not verified'},
+            status=400
+        )
+
+    # 5. Check amount and currency
+    expected_cents = int(
+        Decimal(str(topup.amount_rands)) * Decimal('100')
+    )
+
+    if (
+        payment.get('amount') != expected_cents
+        or payment.get('currency') != 'ZAR'
+    ):
+        return Response(
+            {'status': 'error', 'message': 'Payment details mismatch'},
+            status=400
+        )
+
+    # 6. Credit the account exactly once
     with transaction.atomic():
-        topup.status = 'success'
-        topup.save(update_fields=['status'])
 
-        account, _ = CreditAccount.objects.select_for_update().get_or_create(user=topup.user)
-        account.balance += topup.credits_added
-        account.save(update_fields=['balance'])
-    
-    return Response({'status': 'success', 'message': 'Credits added.'}, status=200)
+        locked_topup = CreditTopUp.objects.select_for_update().get(
+            pk=topup.pk
+        )
 
+        if locked_topup.status == 'success':
+            return Response(
+                {'status': 'success', 'message': 'Already processed'},
+                status=200
+            )
+
+        account, _ = CreditAccount.objects.get_or_create(
+            user=locked_topup.user
+        )
+
+        CreditAccount.objects.filter(pk=account.pk).update(
+            balance=F('balance') + locked_topup.credits_added
+        )
+
+        locked_topup.status = 'success'
+        locked_topup.save(update_fields=['status'])
+
+    return Response(
+        {'status': 'success', 'message': 'Credits added'},
+        status=200
+    )
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

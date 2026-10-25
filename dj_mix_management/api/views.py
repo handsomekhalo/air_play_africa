@@ -28,11 +28,16 @@ from system_management import constants
 @parser_classes([MultiPartParser, FormParser])
 def upload_mix_api(request):
     """DJ uploads a mix file to Backblaze B2."""
-    if request.user.user_type.name not in ['Artist', 'DJ']:
+    if not request.user.is_dj:
         return Response({
             'status': 'error',
-            'message': 'Only DJs and Artists can upload mixes.'
+            'message': 'DJ access is required to upload mixes.'
         }, status=status.HTTP_403_FORBIDDEN)
+    # if request.user.user_type.name not in ['Artist', 'DJ']:
+    #     return Response({
+    #         'status': 'error',
+    #         'message': 'Only DJs and Artists can upload mixes.'
+    #     }, status=status.HTTP_403_FORBIDDEN)
 
     serializer = MixUploadSerializer(data=request.data)
     if not serializer.is_valid():
@@ -115,12 +120,30 @@ def get_mix_detail_api(request, mix_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_my_mixes_api(request):
-    """Returns all mixes uploaded by the logged-in DJ."""
-    mixes = Mix.objects.filter(dj=request.user, status='ready')
+
+    if not request.user.is_dj:
+        return Response({
+            'status': 'error',
+            'message': 'DJ access is required.'
+        }, status=status.HTTP_403_FORBIDDEN)
+
+    mixes = Mix.objects.filter(
+        dj=request.user
+    ).order_by('-upload_date')
+
     return Response({
         'status': 'success',
-        'data':   MixSerializer(mixes, many=True).data
+        'data': MixSerializer(mixes, many=True).data
     }, status=status.HTTP_200_OK)
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def get_my_mixes_api(request):
+#     """Returns all mixes uploaded by the logged-in DJ."""
+#     mixes = Mix.objects.filter(dj=request.user, status='ready')
+#     return Response({
+#         'status': 'success',
+#         'data':   MixSerializer(mixes, many=True).data
+#     }, status=status.HTTP_200_OK)
 
 
 # ─── Get All Mixes (Public Browse) ───────────────────────────────

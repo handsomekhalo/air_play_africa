@@ -121,7 +121,7 @@ const handleSubmit = async (e) => {
 
     // DJ account
     if (user.is_dj) {
-      router.replace('/browse/mixes');
+      router.replace('/dj/dashboard');
       return;
     }
 

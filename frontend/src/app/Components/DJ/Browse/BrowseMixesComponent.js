@@ -293,7 +293,8 @@ function MixCard({ mix, isActive, isPlaying, onPlay, onTip }) {
 // ─── Main Component ──────────────────────────────────────────────
 
 const BrowseMixesComponent = () => {
-  useAuthGuard('/listener/login', 'Listener');
+  // useAuthGuard('/listener/login', 'Listener');
+  const authorized = useAuthGuard('/login');
   const [mixes, setMixes] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -478,6 +479,7 @@ const BrowseMixesComponent = () => {
     }
   };
 
+  if (!authorized) return null;
   // ── Render ─────────────────────────────────────────────────────
   return (
     <>

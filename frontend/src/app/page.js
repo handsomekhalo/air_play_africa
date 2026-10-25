@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-// import LoginPage from './Login_Component/login';
 import LoginPage from './Components/Login_Component/login';
 import ArtistRegister from './CreateArtistComponent/create_artist';
 import DJRegister from './Components/DJ/DJRegister';

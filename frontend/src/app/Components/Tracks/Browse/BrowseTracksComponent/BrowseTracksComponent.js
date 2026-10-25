@@ -391,7 +391,10 @@ function TrackAvatar({ track, size = 56, playing = false }) {
 // ─── Main Component ──────────────────────────────────────────────
 
 const BrowseTracksComponent = () => {
-  useAuthGuard('/listener/login', 'Listener');
+  // useAuthGuard('/listener/login', 'Listener');
+  const authorized = useAuthGuard('/login');
+
+
   const [tracks, setTracks]         = useState([]);
   const [filtered, setFiltered]     = useState([]);
   const [loading, setLoading]       = useState(true);
@@ -606,6 +609,10 @@ const playTrackByObject = async (track) => {
     console.error("Playback failed:", err);
   }
 };
+
+if (!authorized) return null;
+
+
   // ── Render ─────────────────────────────────────────────────────
   return (
     <>

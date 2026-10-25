@@ -853,12 +853,22 @@ def get_admin_profile_api(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def logout_api(request):
-    """Deletes the user's auth token — invalidates all sessions."""
-    try:
-        request.user.auth_token.delete()
-        return Response({'status': 'success', 'message': 'Logged out successfully.'}, status=200)
-    except Exception:
-        return Response({'status': 'success', 'message': 'Logged out.'}, status=200)
+    Token.objects.filter(user=request.user).delete()
+
+    return Response({
+        'status': 'success',
+        'message': 'Logged out successfully.'
+    }, status=200)
+
+# @api_view(['POST'])
+# @permission_classes([IsAuthenticated])
+# def logout_api(request):
+#     """Deletes the user's auth token — invalidates all sessions."""
+#     try:
+#         request.user.auth_token.delete()
+#         return Response({'status': 'success', 'message': 'Logged out successfully.'}, status=200)
+#     except Exception:
+#         return Response({'status': 'success', 'message': 'Logged out.'}, status=200)
 
 
 @api_view(['GET'])

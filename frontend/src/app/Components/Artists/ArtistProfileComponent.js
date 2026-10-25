@@ -52,7 +52,8 @@ function flattenProfile(data) {
 // ─── Component ───────────────────────────────────────────────────
 
 const ArtistProfileComponent = () => {
-  useAuthGuard('/login', 'Artist');
+  // useAuthGuard('/login', 'Artist');
+  const authorized = useAuthGuard('/login');
 
   const [profile, setProfile]   = useState(null);
   const [form, setForm]         = useState({});

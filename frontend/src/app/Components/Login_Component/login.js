@@ -95,8 +95,20 @@ const handleSubmit = async (e) => {
 
     console.log('Logged-in user type:', userType);
 
-    if (userType === 'artist') {
-      if (!artist || artist.is_onboarded === false) {
+    if (userType === 'admin') {
+      router.replace('/admin/dashboard');
+      return;
+    }
+
+    // Both creator capabilities enabled
+    if (user.is_artist && user.is_dj) {
+      router.replace('/creator/dashboard');
+      return;
+    }
+
+    // Artist account
+    if (user.is_artist) {
+      if (!artist?.is_onboarded) {
         router.replace(
           `/artist-onboarding?step=${artist?.onboarding_step || 1}`
         );
@@ -107,18 +119,15 @@ const handleSubmit = async (e) => {
       return;
     }
 
-    if (userType === 'dj') {
+    // DJ account
+    if (user.is_dj) {
       router.replace('/browse/mixes');
       return;
     }
 
+    // Listener account
     if (userType === 'listener') {
       router.replace('/browse');
-      return;
-    }
-
-    if (userType === 'admin') {
-      router.replace('/admin/dashboard');
       return;
     }
 

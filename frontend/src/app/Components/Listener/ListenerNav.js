@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { getCreditBalance } from '../../../utils/wallet_helper';
+import { useAuth } from '../../../../AuthContext';
 
 const ListenerNav = () => {
   const router = useRouter();
   const pathname = usePathname();
+  const { logout } = useAuth();
   const [balance, setBalance] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -24,11 +26,9 @@ const ListenerNav = () => {
     fetchBalance();
   }, [pathname]); // re-fetch when navigating back (e.g. after a tip)
 
-  const handleLogout = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('csrfToken');
-    localStorage.removeItem('user');
-    router.replace('/listener/login');
+  const handleLogout = async () => {
+    setMenuOpen(false);
+    await logout();
   };
 
   const navItem = (label, href) => (

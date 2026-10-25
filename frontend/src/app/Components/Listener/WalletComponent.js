@@ -14,7 +14,8 @@ const PRESET_AMOUNTS = [20, 50, 100, 200];
 // ─── Component ─────────────────────────────────────────────────
 
 const WalletComponent = () => {
-  useAuthGuard('/listener/login', 'Listener');
+  // useAuthGuard('/listener/login', 'Listener');
+  const authorized = useAuthGuard('/login');
 
   const [balance, setBalance]       = useState(null);
   const [loading, setLoading]       = useState(true);
@@ -73,6 +74,8 @@ const WalletComponent = () => {
     }
   };
 
+
+if (!authorized) return null;
   // ── Render ───────────────────────────────────────────────────
   return (
     <>

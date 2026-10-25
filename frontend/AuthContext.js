@@ -43,27 +43,60 @@ export const AuthProvider = ({ children }) => {
   //   localStorage.removeItem('user');
   //   router.push('/');
   // };
+// const logout = async () => {
+//   try {
+//     const token = localStorage.getItem('authToken');
+//     if (token) {
+//       // Delete token server-side first
+//       await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/system_management/logout/`, {
+//         method: 'POST',
+//         headers: { 'Authorization': `Token ${token}` }
+//       });
+//     }
+//   } catch {
+//     // Even if server call fails, clear client-side
+//   } finally {
+//     setAuthToken(null);
+//     setCSRFToken(null);
+//     localStorage.removeItem('authToken');
+//     localStorage.removeItem('csrfToken');
+//     localStorage.removeItem('user');
+//     router.push('/');
+//   }
+// };
 const logout = async () => {
   try {
     const token = localStorage.getItem('authToken');
+
     if (token) {
-      // Delete token server-side first
-      await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/system_management/logout/`, {
-        method: 'POST',
-        headers: { 'Authorization': `Token ${token}` }
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/system_management/logout/`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Token ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        console.warn('Server logout failed:', response.status);
+      }
     }
-  } catch {
-    // Even if server call fails, clear client-side
+  } catch (error) {
+    console.error('Logout request failed:', error);
   } finally {
     setAuthToken(null);
     setCSRFToken(null);
+
     localStorage.removeItem('authToken');
     localStorage.removeItem('csrfToken');
     localStorage.removeItem('user');
-    router.push('/');
+
+    router.replace('/login');
   }
 };
+
   const navigate = (path) => {
     router.push(path);
   };

@@ -33,7 +33,8 @@ function flattenProfile(data) {
 // ─── Component ───────────────────────────────────────────────────
 
 const ListenerProfileComponent = () => {
-  useAuthGuard('/listener/login', 'Listener');
+  // useAuthGuard('/listener/login', 'Listener');
+  const authorized = useAuthGuard('/login');
 
   const [profile, setProfile]   = useState(null);
   const [form, setForm]         = useState({});
@@ -182,6 +183,7 @@ useEffect(() => {
     );
   }
 
+  if (!authorized) return null;
   // ── Main render ───────────────────────────────────────────────
   return (
     <>

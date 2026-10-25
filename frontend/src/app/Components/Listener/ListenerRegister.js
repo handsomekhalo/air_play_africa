@@ -59,7 +59,8 @@ export default function ListenerRegisterPage() {
 
       if (response.data.status === 'success') {
         // Registration done — send them to login
-        router.replace('/listener/login');
+        // router.replace('/listener/login');
+        router.replace('/login');
       } else {
         setError(response.data.message || 'Registration failed. Try again.');
       }

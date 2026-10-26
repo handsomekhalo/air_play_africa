@@ -19,7 +19,7 @@ from system_management.backblazes3 import upload_to_backblaze_s3
 from system_management.models import User
 from media_streaming_management.models import CreditAccount, ArtistEarnings
 from system_management import constants
-
+from mutagen.mp3 import MP3
 
 
 # ─── Upload Mix ──────────────────────────────────────────────────
@@ -49,11 +49,23 @@ def upload_mix_api(request):
     mix_file = request.FILES.get('mix_file')
     cover    = request.FILES.get('cover_image')
 
+    try:          
+            mix_file.seek(0)
+            audio = MP3(mix_file)
+            duration_seconds = round(audio.info.length)
+            mix_file.seek(0)
+    except Exception as e:
+        return Response({
+                'status': 'error',
+                'message': f'Could not read MP3 duration: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
     if not mix_file:
         return Response({
             'status': 'error',
             'message': 'Mix file is required.'
         }, status=status.HTTP_400_BAD_REQUEST)
+        
 
     # Create mix record first
     mix = Mix.objects.create(
@@ -61,6 +73,7 @@ def upload_mix_api(request):
         title       = serializer.validated_data['title'],
         description = serializer.validated_data.get('description', ''),
         genre       = serializer.validated_data.get('genre', ''),
+        duration=duration_seconds,
         status      = 'uploading',
     )
 

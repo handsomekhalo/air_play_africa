@@ -100,6 +100,7 @@ export default function PublicMixPage({ mixId }) {
     try {
       const res = await getMixPlayToken(mixId);
       const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+      
       audioRef.current.src = `${backendBase}${res.play_url}`;
       audioRef.current.load();
       await audioRef.current.play();

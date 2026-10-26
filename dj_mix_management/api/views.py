@@ -12,7 +12,7 @@ import uuid
 
 from dj_mix_management.models import Mix, MixTrack, MixStream, MixTip
 from dj_mix_management.api.serializers import (
-    MixSerializer, MixUploadSerializer, MixTrackSerializer,
+    MixSerializer, MixStreamUpdateSerializer, MixUploadSerializer, MixTrackSerializer,
     MixStreamSerializer, MixTipSerializer, PublicMixSerializer
 )
 from system_management.backblazes3 import upload_to_backblaze_s3
@@ -205,7 +205,8 @@ def get_mix_play_token_api(request, mix_id):
 
     signer   = TimestampSigner()
     token    = signer.sign(str(mix_id))
-    play_url = f"/dj_mix_management_api/play_mix_with_token_api/{token}/"
+    # play_url = f"/dj_mix_management_api/play_mix_with_token_api/{token}/"
+    play_url = f"/dj_mix_management/play_mix_with_token/{token}/"
 
     return Response({
         'status':   'success',
@@ -231,7 +232,12 @@ def play_mix_with_token_api(request, token):
         }, status=status.HTTP_403_FORBIDDEN)
 
     try:
-        mix = Mix.objects.get(id=mix_id, status='ready')
+        # mix = Mix.objects.get(id=mix_id, status='ready')
+        mix = Mix.objects.get(
+        id=mix_id,
+        status='ready',
+        is_published=True
+            )
     except Mix.DoesNotExist:
         return Response({
             'status':  'error',
@@ -324,7 +330,16 @@ def update_mix_stream_api(request, session_id):
             'message': 'Stream not found.'
         }, status=status.HTTP_404_NOT_FOUND)
 
-    new_listen_time = request.data.get('listen_time', stream.listen_time)
+    # new_listen_time = request.data.get('listen_time', stream.listen_time)
+    serializer = MixStreamUpdateSerializer(data=request.data)
+
+    if not serializer.is_valid():
+                return Response({
+                    'status': 'error',
+                    'errors': serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+    new_listen_time = serializer.validated_data['listen_time']
 
     if new_listen_time <= stream.listen_time:
         return Response({

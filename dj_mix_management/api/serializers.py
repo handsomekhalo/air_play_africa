@@ -81,3 +81,6 @@ class PublicMixSerializer(serializers.ModelSerializer):
 
     def get_dj_name(self, obj):
         return f"{obj.dj.first_name} {obj.dj.last_name}"
+    
+class MixStreamUpdateSerializer(serializers.Serializer):
+    listen_time = serializers.FloatField(min_value=0)

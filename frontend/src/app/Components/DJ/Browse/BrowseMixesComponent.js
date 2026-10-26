@@ -304,9 +304,12 @@ const BrowseMixesComponent = () => {
   const [currentMix, setCurrentMix] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const listenTimerRef = useRef(null);
+  const listenTimeRef = useRef(0);
+  const lastPlaybackTimeRef = useRef(null);
   const streamSessionRef = useRef(null);
   const [tippingMix, setTippingMix] = useState(null);
   const [tipToast, setTipToast] = useState(null);
+  const [playbackError, setPlaybackError] = useState('');
 
   const audioRef = useRef(null);
   const [currentMixIndex, setCurrentMixIndex] = useState(null);
@@ -407,26 +410,75 @@ const BrowseMixesComponent = () => {
     }
   };
 
-  const startListenTimer = (session) => {
-    if (listenTimerRef.current) clearInterval(listenTimerRef.current);
-    let elapsed = 0;
-    listenTimerRef.current = setInterval(async () => {
-      elapsed += 30;
+  // const startListenTimer = (session) => {
+  //   if (listenTimerRef.current) clearInterval(listenTimerRef.current);
+  //   let elapsed = 0;
+  //   listenTimerRef.current = setInterval(async () => {
+  //     elapsed += 30;
+  //     try {
+  //       await updateMixStream(session, elapsed);
+  //       console.log(`Mix listen time updated: ${elapsed}s`);
+  //     } catch (err) {
+  //       console.error("Failed to update mix listen time:", err);
+  //     }
+  //   }, 30000);
+  // };
+
+  // const stopListenTimer = () => {
+  //   if (listenTimerRef.current) {
+  //     clearInterval(listenTimerRef.current);
+  //     listenTimerRef.current = null;
+  //   }
+  // };
+
+const startListenTimer = (session) => {
+  stopListenTimer();
+
+  listenTimeRef.current = 0;
+  lastPlaybackTimeRef.current = null;
+
+  listenTimerRef.current = setInterval(async () => {
+    const audio = audioRef.current;
+
+    if (!audio || audio.paused || audio.ended || audio.seeking) {
+      lastPlaybackTimeRef.current = null;
+      return;
+    }
+
+    const now = performance.now();
+
+    if (lastPlaybackTimeRef.current !== null) {
+      const delta = (now - lastPlaybackTimeRef.current) / 1000;
+
+      // Ignore unusually long gaps, such as suspended tabs.
+      if (delta > 0 && delta < 2) {
+        listenTimeRef.current += delta;
+      }
+    }
+
+    lastPlaybackTimeRef.current = now;
+
+    const elapsed = Math.floor(listenTimeRef.current);
+
+    // Synchronise periodically rather than on every tick.
+    if (elapsed > 0 && elapsed % 30 === 0) {
       try {
         await updateMixStream(session, elapsed);
-        console.log(`Mix listen time updated: ${elapsed}s`);
       } catch (err) {
-        console.error("Failed to update mix listen time:", err);
+        console.error('Failed to update listening time:', err);
       }
-    }, 30000);
-  };
-
-  const stopListenTimer = () => {
-    if (listenTimerRef.current) {
-      clearInterval(listenTimerRef.current);
-      listenTimerRef.current = null;
     }
-  };
+  }, 1000);
+};
+
+const stopListenTimer = () => {
+  if (listenTimerRef.current) {
+    clearInterval(listenTimerRef.current);
+    listenTimerRef.current = null;
+  }
+
+  lastPlaybackTimeRef.current = null;
+};
 
   const handleTipSuccess = (data) => {
     setTippingMix(null);
@@ -460,24 +512,66 @@ const BrowseMixesComponent = () => {
     };
   }, []);
 
-  const playMixByObject = async (mix) => {
-    try {
-      const res = await getMixPlayToken(mix.id);
+  
+const playMixByObject = async (mix) => {
+  if (!audioRef.current) return;
 
-      const backendBase = (process.env.NEXT_PUBLIC_BACKEND_URL || '').trim() || 'http://localhost:8000';
-      const playUrl = `${backendBase}${res.play_url}`;
+  try {
+    setPlaybackError('');
 
-      stopListenTimer();
-      audioRef.current.src = playUrl;
-      audioRef.current.load();
-      await audioRef.current.play();
-      setCurrentMix(mix);
-      setIsPlaying(true);
-      recordStream(mix);
-    } catch (err) {
-      console.error("Mix playback failed:", err);
+    const res = await getMixPlayToken(mix.id);
+
+    if (res.status !== 'success' || !res.play_url) {
+      throw new Error(res.message || 'Could not obtain playback URL.');
     }
-  };
+
+    const backendBase =
+      process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+
+    const playUrl = new URL(res.play_url, backendBase).toString();
+
+    console.log('Mix playback URL:', playUrl);
+
+    stopListenTimer();
+    audioRef.current.pause();
+    audioRef.current.src = playUrl;
+    audioRef.current.load();
+
+    await audioRef.current.play();
+
+    setCurrentMix(mix);
+    setIsPlaying(true);
+
+    await recordStream(mix);
+
+  } catch (err) {
+    console.error('Mix playback failed:', err);
+
+    setIsPlaying(false);
+    setPlaybackError(
+      err.message || 'Unable to play this mix.'
+    );
+  }
+};
+
+  // const playMixByObject = async (mix) => {
+  //   try {
+  //     const res = await getMixPlayToken(mix.id);
+
+  //     const backendBase = (process.env.NEXT_PUBLIC_BACKEND_URL || '').trim() || 'http://localhost:8000';
+  //     const playUrl = `${backendBase}${res.play_url}`;
+
+  //     stopListenTimer();
+  //     audioRef.current.src = playUrl;
+  //     audioRef.current.load();
+  //     await audioRef.current.play();
+  //     setCurrentMix(mix);
+  //     setIsPlaying(true);
+  //     recordStream(mix);
+  //   } catch (err) {
+  //     console.error("Mix playback failed:", err);
+  //   }
+  // };
 
   if (!authorized) return null;
   // ── Render ─────────────────────────────────────────────────────
@@ -590,6 +684,22 @@ const BrowseMixesComponent = () => {
               ⚠️ {error}
             </div>
           )}
+          {playbackError && (
+  <div
+    role="alert"
+    style={{
+      padding: 16,
+      marginBottom: 16,
+      background: '#1a0a0a',
+      border: '1px solid #3a1010',
+      borderRadius: 12,
+      color: '#ff6b6b',
+      fontSize: 14,
+    }}
+  >
+    ⚠️ {playbackError}
+  </div>
+)}
 
           {!loading && !error && filtered.length === 0 && (
             <div style={{ textAlign: 'center', padding: 60, color: '#444' }}>

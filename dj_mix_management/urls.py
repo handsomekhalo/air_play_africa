@@ -17,4 +17,5 @@ urlpatterns = [
     path('admin_get_all_mixes/', views.admin_get_all_mixes,name='admin_get_all_mixes'),
     path('admin_moderate_mix/<int:mix_id>/',views.admin_moderate_mix,name='admin_moderate_mix'),
     path('delete_mix/<int:mix_id>/',views.delete_mix,name='delete_mix'),
+    path('get_dj_analytics/',views.get_dj_analytics,name='get_dj_analytics'),
 ]

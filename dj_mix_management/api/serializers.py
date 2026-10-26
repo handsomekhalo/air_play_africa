@@ -84,3 +84,30 @@ class PublicMixSerializer(serializers.ModelSerializer):
     
 class MixStreamUpdateSerializer(serializers.Serializer):
     listen_time = serializers.FloatField(min_value=0)
+
+
+
+class DJTopMixSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    title = serializers.CharField()
+    play_count = serializers.IntegerField()
+    total_listening_seconds = serializers.FloatField()
+    total_tips = serializers.IntegerField()
+    dj_earnings = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=2
+    )
+
+
+class DJAnalyticsSerializer(serializers.Serializer):
+    total_mixes = serializers.IntegerField()
+    total_plays = serializers.IntegerField()
+    total_listening_seconds = serializers.FloatField()
+    average_listening_seconds = serializers.FloatField()
+    unique_listeners = serializers.IntegerField()
+    total_tips = serializers.IntegerField()
+    total_earnings = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=2
+    )
+    top_mixes = DJTopMixSerializer(many=True)

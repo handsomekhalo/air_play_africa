@@ -130,3 +130,11 @@ export const adminModerateMix = async (mixId, action) => {
   );
   return response.data;
 };
+
+export const getDJAnalytics = async () => {
+  const response = await backendApi.get(
+    '/dj_mix_management/get_dj_analytics/'
+  );
+
+  return response.data;
+};

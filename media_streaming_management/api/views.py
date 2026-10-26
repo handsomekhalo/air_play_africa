@@ -1,11 +1,7 @@
-
-import json
 import os
 import json
 import logging
-import tempfile
 from datetime import timedelta
-
 from django.core import signing
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
@@ -24,8 +20,6 @@ from django.http import (
     HttpResponseForbidden,
     StreamingHttpResponse,
 )
-from django.shortcuts import get_object_or_404
-
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 
@@ -41,7 +35,6 @@ from rest_framework.decorators import (
 )
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.response import Response
 
 logger = logging.getLogger(__name__)
 from django.db import IntegrityError
@@ -62,16 +55,12 @@ from system_management.ai_services import analyze_track_with_ai
 from mutagen import File as MutagenFile
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.decorators import api_view, parser_classes
-
-import os
-import tempfile
 from media_streaming_management.api.serialziers import ArtistEarningsSerializer, CreditAccountSerializer, GetAllArtistTrackListSerializer, GetAllTracksDetailSerializer, GetSingleTrackListSerializer, TipSerializer, TrackSerializer, UploadTrackSerializer, WithdrawalRequestCreateSerializer, WithdrawalRequestSerializer
 from system_management.models import UserType
 from system_management.permissions import IsAdminUserType
 from system_management.models import UserType
 from system_management.models import UserType
 User = get_user_model()
-from django.db.models import Avg, Count
 from media_streaming_management.api.serialziers import AdminCreateSerializer, ArtistCreateSerializer, ArtistSerializer, GetAlltUserModelSerializer, GetArtistProfileSerializer, ListenerCreateSerializer, StreamSerializer, TipSerializer, TrackSerializer, UpdateArtistProfileSerializer, UserModelSerializer, UserTypeModelSerializer,GetArtistSerializer
 from media_streaming_management.models import Artist, ArtistEarnings, CreditAccount, CreditTopUp,  Stream, Tip, Track, WithdrawalRequest
 from web3 import Web3  # For blockchain placeholder
@@ -95,13 +84,13 @@ import hashlib
 import hmac
 import json
 import requests
-
-from decimal import Decimal
+import pathlib
+import mimetypes
+from urllib.parse import quote
 
 from django.conf import settings
 from django.db import transaction
 from django.db.models import F
-from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from django.db.models.functions import TruncDate
@@ -119,13 +108,11 @@ CONTRACT_ABI = []  # ABI here
 from rest_framework.decorators import api_view, permission_classes, parser_classes
 
 
-
 def extract_audio_metadata(audio_file):
     """
     Extract metadata without creating another temporary file.
     """
     audio_file.seek(0)
-
     metadata = {
         "file_size": audio_file.size,
         "duration": None,
@@ -198,14 +185,10 @@ def verify_b2_upload(s3, key, expected_size):
 
     return True
 
-import pathlib
-import mimetypes
-from urllib.parse import quote
 
 
 def upload_track_to_backblaze(audio_file, track_id, artist_name):
     bucket = settings.BACK_BLAZE_BUCKET_NAME
-
     sanitized_artist = (
         artist_name.strip()
         .replace(" ", "_")
@@ -248,9 +231,7 @@ def upload_track_api(request):
 
     print("[DRF] Upload API entered", flush=True)
     print("[DRF] Files:", list(request.FILES.keys()), flush=True)
-
     MAX_TRACK_SIZE = 15 * 1024 * 1024
-
 
     artist = getattr(request.user, "artist", None)
 
@@ -397,131 +378,6 @@ def upload_track_api(request):
             "message": "Track upload failed."
         }, status=500)
 
-
-
-# @api_view(['POST'])
-# @permission_classes([IsAuthenticated])
-# @parser_classes([MultiPartParser, FormParser])
-# def upload_track_api(request):
-#     """
-#     Upload track to Backblaze with AI analysis.
-    
-#     Form-data:
-#     - title: string
-#     - genre: string (optional, AI will suggest)
-#     - album: string (optional)
-#     - audio_file: file
-#     - cover_image: file (optional)
-#     """
-
-#     # 1. Ensure user is an artist
-#     try:
-#         artist = request.user.artist
-#     except Artist.DoesNotExist:
-#         return Response({
-#             'status': 'error',
-#             'message': 'Only artists can upload tracks.'
-#         }, status=status.HTTP_403_FORBIDDEN)
-
-#     # 2. Validate base data with serializer
-#     serializer = UploadTrackSerializer(data=request.data, context={'request': request})
-#     if not serializer.is_valid():
-#         return Response({
-#             'status': 'error',
-#             'message': 'Validation failed.',
-#             'errors': serializer.errors
-#         }, status=status.HTTP_400_BAD_REQUEST)
-
-#     audio_file = request.FILES.get('audio_file')
-#     cover_image = request.FILES.get('cover_image')
-#     if not audio_file:
-#         return Response({
-#             'status': 'error',
-#             'message': 'Audio file is required.'
-#         }, status=status.HTTP_400_BAD_REQUEST)
-
-#     # 3. Create the track record
-#     track = serializer.save(artist=artist, status='uploading')
-
-#     try:
-#         # 4. Save temporarily for metadata extraction
-#         with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as temp_file:
-#             for chunk in audio_file.chunks():
-#                 temp_file.write(chunk)
-#             temp_path = temp_file.name
-
-#         # 5. Extract basic metadata
-#         audio = MutagenFile(temp_path)
-#         if audio and audio.info:
-#             track.duration = int(audio.info.length)
-#         track.file_size = os.path.getsize(temp_path)
-
-#         # 6. AI analysis (optional)
-#         artist_name = f"{artist.user.first_name} {artist.user.last_name}"
-#         try:
-#             ai_data = analyze_track_with_ai(temp_path, track.title, artist_name)
-
-#             if ai_data:
-#                 track.bpm = ai_data.get('bpm')
-#                 # ai_analysis = json.loads(ai_data.get('ai_analysis', '{}'))
-#                 raw_ai = ai_data.get('ai_analysis', '{}')
-
-#                 # Remove backticks and "json"
-#                 def clean_json_string(s: str):
-#                     s = s.strip()
-#                     if s.startswith("```"):
-#                         s = s.strip("`")
-#                         s = s.replace("json", "", 1).strip()
-#                     return s
-
-
-#                 cleaned = clean_json_string(raw_ai)
-#                 ai_analysis = json.loads(cleaned)
-#                 track.ai_genre = ai_analysis.get('genre', '')
-#                 track.ai_mood = ai_analysis.get('mood', '')
-#                 track.ai_description = ai_analysis.get('description', '')
-#                 track.ai_tags = ai_analysis.get('tags', [])
-#         except Exception as e:
-#             print(f"[AI Analysis] Failed: {e}")
-
-#         # 7. Upload to Backblaze
-#         audio_file.seek(0)
-#         stream_url = upload_track_to_backblaze(audio_file, track.id, artist_name)
-#         if not stream_url:
-#             track.status = 'failed'
-#             track.save()
-#             return Response({
-#                 'status': 'error',
-#                 'message': 'Failed to upload audio file to storage.'
-#             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-#         track.stream_url = stream_url
-
-#         # 8. Upload cover image (optional)
-#         if cover_image:
-#             cover_url = upload_cover_image_to_backblaze(cover_image, track.id, artist_name)
-#             if cover_url:
-#                 track.cover_image_url = cover_url
-
-#         # 9. Finalize
-#         track.status = 'ready'
-#         track.save()
-
-#         # Cleanup
-#         os.unlink(temp_path)
-
-#         return Response({
-#             'status': 'success',
-#             'message': 'Track uploaded successfully!',
-#             'data': TrackSerializer(track, context={'request': request}).data
-#         }, status=status.HTTP_201_CREATED)
-
-#     except Exception as e:
-#         track.status = 'failed'
-#         track.save()
-#         return Response({
-#             'status': 'error',
-#             'message': f'Upload failed: {str(e)}'
-#         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['GET'])
@@ -994,38 +850,6 @@ def update_stream_api(request, session_id):
         }, status=status.HTTP_404_NOT_FOUND)
 
 
-# @api_view(['PATCH'])
-# @permission_classes([AllowAny])
-# def update_stream_api(request, session_id):
-#     """Update listen time for an existing stream."""
-#     try:
-#         stream = Stream.objects.get(session_id=session_id)
-#         listen_time = request.data.get('listen_time', stream.listen_time)
-        
-#         # Only update if new time is greater (prevent fraud)
-#         if listen_time > stream.listen_time:
-#             stream.listen_time = listen_time
-#             stream.save()
-            
-#             # Recalculate merit score
-#             track = stream.track
-#             avg_time = track.streams.aggregate(Avg('listen_time'))['listen_time__avg'] or 0
-#             unique_listeners = track.streams.aggregate(Count('session_id', distinct=True))['session_id__count']
-#             track.merit_score = (unique_listeners * avg_time) + track.tips.count()
-#             track.save()
-        
-#         return Response({
-#             'status': 'success',
-#             'listen_time': stream.listen_time
-#         }, status=status.HTTP_200_OK)
-        
-#     except Stream.DoesNotExist:
-#         return Response({
-#             'status': 'error',
-#             'message': 'Stream not found'
-#         }, status=status.HTTP_404_NOT_FOUND)
-    
-
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -1079,34 +903,6 @@ def discover_tracks_api(request):
         })
 
     return Response({'status': 'success', 'data': result}, status=200)
-# @api_view(['GET'])
-# @permission_classes([AllowAny])
-# def discover_tracks_api(request):
-#     """Weekly charts — top tracks by merit score."""
-#     limit  = int(request.GET.get('limit', 20))
-#     tracks = Track.objects.filter(
-#         status='ready', merit_score__gt=0
-#     ).order_by('-merit_score')[:limit]
-
-#     result = []
-#     for i, track in enumerate(tracks, start=1):
-#         result.append({
-#             'rank':            i,
-#             'id':              track.id,
-#             'title':           track.title,
-#             'artist_name':     f"{track.artist.user.first_name} {track.artist.user.last_name}",
-#             'genre':           track.ai_genre or track.genre or '',
-#             'mood':            track.ai_mood  or '',
-#             'cover_image_url': track.cover_image_url or '',
-#             'duration':        track.duration or 0,
-#             'bpm':             track.bpm or None,
-#             'play_count':      track.play_count or 0,
-#             'merit_score':     track.merit_score or 0,
-#         })
-
-#     return Response({'status': 'success', 'data': result}, status=200)
-
-
 
 @api_view(["GET"])
 @permission_classes([AllowAny])  # Listeners don't need auth to play
@@ -1137,7 +933,6 @@ def get_all_tracks_admin_api(request):
     """Admin — get all tracks regardless of status."""
     if request.user.user_type.name != 'Admin':
         return Response({'status': 'error', 'message': 'Unauthorized'}, status=403)
-    
     tracks = Track.objects.all().order_by('-upload_date')
     serializer = GetAllTracksDetailSerializer(tracks, many=True, context={'request': request})
     return Response({'status': 'success', 'data': serializer.data}, status=200)
@@ -1167,7 +962,6 @@ def moderate_track_api(request, track_id):
         'track_id': track.id,
         'new_status': track.status,
     }, status=200)
-
 
 
 
@@ -1220,8 +1014,6 @@ def initiate_topup_api(request):
         }
     }
 
-
-
     try:
         response = requests.post(
             f'{settings.PAYSTACK_BASE_URL}/transaction/initialize',
@@ -1229,7 +1021,6 @@ def initiate_topup_api(request):
             headers=headers,
             timeout=30
         )
-
 
         data = response.json()
 
@@ -1248,8 +1039,6 @@ def initiate_topup_api(request):
                 'status': 'error',
                 'message': 'Paystack did not return a payment reference.'
             }, status=status.HTTP_400_BAD_REQUEST)
-
-
 
         # Create pending top-up record with real reference
         CreditTopUp.objects.create(
@@ -1351,8 +1140,6 @@ def send_tip_api(request):
 # For local testing, you'll need a tunnel — use ngrok: ngrok http 8000 gives you a public URL pointing to your local server
 
 # No proxy needed for this one — Paystack calls it directly, not through your frontend, so the standard proxy pattern doesn't apply here.
-
-
 
 
 @api_view(['POST'])
@@ -1647,7 +1434,6 @@ def admin_process_withdrawal_api(request, withdrawal_id):
         'message': f'Withdrawal {action}d.',
         'data': WithdrawalRequestSerializer(withdrawal).data,
     }, status=200)
-
 
 
 @api_view(['GET'])

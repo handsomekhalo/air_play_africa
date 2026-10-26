@@ -299,3 +299,44 @@ def delete_mix(request, mix_id):
     except Exception as e:
         print(f"❌ delete_mix error: {e}")
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@csrf_exempt
+def get_dj_analytics(request):
+    if request.method != 'GET':
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Method not allowed'
+        }, status=405)
+
+    try:
+        url = (
+            f"{host_url()}"
+            f"{reverse_lazy('get_dj_analytics_api')}"
+        )
+
+        headers = {}
+
+        auth_header = request.headers.get('Authorization', '')
+
+        if auth_header:
+            headers['Authorization'] = auth_header
+
+        response = requests.get(
+            url,
+            headers=headers,
+            timeout=30
+        )
+
+        return JsonResponse(
+            response.json(),
+            status=response.status_code
+        )
+
+    except Exception as e:
+        print(f"DJ analytics error: {e}")
+
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Unable to retrieve DJ analytics.'
+        }, status=500)

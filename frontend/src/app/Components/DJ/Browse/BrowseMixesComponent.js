@@ -309,6 +309,9 @@ const BrowseMixesComponent = () => {
   const lastSyncedTimeRef = useRef(0);
   const syncInProgressRef = useRef(false);
   const streamSessionRef = useRef(null);
+  const syncPromiseRef = useRef(Promise.resolve());
+  const playbackGenerationRef = useRef(0);
+
   const [tippingMix, setTippingMix] = useState(null);
   const [tipToast, setTipToast] = useState(null);
   const [playbackError, setPlaybackError] = useState('');
@@ -393,101 +396,107 @@ const BrowseMixesComponent = () => {
     }
   };
 
-  const handleClose = () => {
-    audioRef.current?.pause();
-    stopListenTimer();
-    setCurrentMix(null);
-    setIsPlaying(false);
-  };
+
+  const handleClose = async () => {
+  ++playbackGenerationRef.current;
+
+  await finishListenSession();
+
+  audioRef.current?.pause();
+
+  if (audioRef.current) {
+    audioRef.current.removeAttribute('src');
+    audioRef.current.load();
+  }
+
+  setCurrentMix(null);
+  setIsPlaying(false);
+};
 
   const recordStream = async (mix) => {
     const session = uuidv4();
-    streamSessionRef.current = session;
+
     try {
-      await recordMixStream({ mixId: mix.id, sessionId: session });
-      console.log("Mix stream recorded:", mix.title);
+      await recordMixStream({
+        mixId: mix.id,
+        sessionId: session
+      });
+
+      console.log('Mix stream recorded:', mix.title);
+
       startListenTimer(session);
     } catch (err) {
-      console.log("Mix stream record skipped:", err?.response?.data?.message);
+      console.error('Failed to record mix stream:', err);
     }
   };
 
-  // const startListenTimer = (session) => {
-  //   if (listenTimerRef.current) clearInterval(listenTimerRef.current);
-  //   let elapsed = 0;
-  //   listenTimerRef.current = setInterval(async () => {
-  //     elapsed += 30;
-  //     try {
-  //       await updateMixStream(session, elapsed);
-  //       console.log(`Mix listen time updated: ${elapsed}s`);
-  //     } catch (err) {
-  //       console.error("Failed to update mix listen time:", err);
-  //     }
-  //   }, 30000);
-  // };
+  // Count actual played audio ranges.
+// This avoids counting paused time or seeking jumps.
+const getPlayedSeconds = () => {
+  const audio = audioRef.current;
+  if (!audio) return 0;
 
-  // const stopListenTimer = () => {
-  //   if (listenTimerRef.current) {
-  //     clearInterval(listenTimerRef.current);
-  //     listenTimerRef.current = null;
-  //   }
-  // };
-  const syncListenTime = async () => {
-  const session = streamSessionRef.current;
-  const elapsed = Math.floor(listenTimeRef.current);
+  let total = 0;
 
-  if (!session || elapsed <= lastSyncedTimeRef.current) return;
-  if (syncInProgressRef.current) return;
+  for (let i = 0; i < audio.played.length; i++) {
+    total += audio.played.end(i) - audio.played.start(i);
+  }
 
-  syncInProgressRef.current = true;
+  return total;
+};
+
+const syncListenTime = async (session, seconds, force = false) => {
+  if (!session) return;
+
+  const elapsed = Math.floor(seconds);
+
+  if (elapsed <= lastSyncedTimeRef.current) return;
+
+  if (!force && elapsed - lastSyncedTimeRef.current < 30) return;
+
+  // Queue requests so they arrive in order.
+  const pending = syncPromiseRef.current
+    .catch(() => {})
+    .then(async () => {
+      await updateMixStream(session, elapsed);
+
+      if (streamSessionRef.current === session) {
+        lastSyncedTimeRef.current = Math.max(
+          lastSyncedTimeRef.current,
+          elapsed
+        );
+      }
+    });
+
+  syncPromiseRef.current = pending;
 
   try {
-    await updateMixStream(session, elapsed);
-    lastSyncedTimeRef.current = elapsed;
+    await pending;
   } catch (err) {
-    console.error('Failed to sync listening time:', err);
-  } finally {
-    syncInProgressRef.current = false;
+    console.error('Failed to sync mix listening time:', err);
   }
 };
 
+
+
+  
 const startListenTimer = (session) => {
   stopListenTimer();
 
+  streamSessionRef.current = session;
   listenTimeRef.current = 0;
-  lastPlaybackTimeRef.current = null;
+  lastSyncedTimeRef.current = 0;
+  syncPromiseRef.current = Promise.resolve();
 
-  listenTimerRef.current = setInterval(async () => {
-    const audio = audioRef.current;
+  listenTimerRef.current = setInterval(() => {
+    if (streamSessionRef.current !== session) return;
 
-    if (!audio || audio.paused || audio.ended || audio.seeking) {
-      lastPlaybackTimeRef.current = null;
-      return;
-    }
+    listenTimeRef.current = getPlayedSeconds();
 
-    const now = performance.now();
-
-    if (lastPlaybackTimeRef.current !== null) {
-      const delta = (now - lastPlaybackTimeRef.current) / 1000;
-
-      // Ignore unusually long gaps, such as suspended tabs.
-      if (delta > 0 && delta < 2) {
-        listenTimeRef.current += delta;
-      }
-    }
-
-    lastPlaybackTimeRef.current = now;
-
-    const elapsed = Math.floor(listenTimeRef.current);
-
-    // Synchronise periodically rather than on every tick.
-    if (elapsed > 0 && elapsed % 30 === 0) {
-      try {
-        await updateMixStream(session, elapsed);
-      } catch (err) {
-        console.error('Failed to update listening time:', err);
-      }
-    }
+    void syncListenTime(
+      session,
+      listenTimeRef.current
+    );
   }, 1000);
 };
 
@@ -496,9 +505,22 @@ const stopListenTimer = () => {
     clearInterval(listenTimerRef.current);
     listenTimerRef.current = null;
   }
-
-  lastPlaybackTimeRef.current = null;
 };
+
+
+const finishListenSession = async () => {
+  stopListenTimer();
+
+  const session = streamSessionRef.current;
+  if (!session) return;
+
+  const seconds = getPlayedSeconds();
+
+  await syncListenTime(session, seconds, true);
+
+  streamSessionRef.current = null;
+};
+
 
   const handleTipSuccess = (data) => {
     setTippingMix(null);
@@ -533,31 +555,42 @@ const stopListenTimer = () => {
   }, []);
 
   
+
 const playMixByObject = async (mix) => {
   if (!audioRef.current) return;
+
+  const generation = ++playbackGenerationRef.current;
 
   try {
     setPlaybackError('');
 
     const res = await getMixPlayToken(mix.id);
 
+    // Ignore an outdated request if another mix was selected.
+    if (generation !== playbackGenerationRef.current) return;
+
     if (res.status !== 'success' || !res.play_url) {
       throw new Error(res.message || 'Could not obtain playback URL.');
     }
 
     const backendBase =
-      process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+      process.env.NEXT_PUBLIC_BACKEND_URL ||
+      'http://localhost:8000';
 
     const playUrl = new URL(res.play_url, backendBase).toString();
 
-    console.log('Mix playback URL:', playUrl);
+    // Finish the previous mix before replacing the audio source.
+    await finishListenSession();
 
-    stopListenTimer();
+    if (generation !== playbackGenerationRef.current) return;
+
     audioRef.current.pause();
     audioRef.current.src = playUrl;
     audioRef.current.load();
 
     await audioRef.current.play();
+
+    if (generation !== playbackGenerationRef.current) return;
 
     setCurrentMix(mix);
     setIsPlaying(true);
@@ -565,14 +598,14 @@ const playMixByObject = async (mix) => {
     await recordStream(mix);
 
   } catch (err) {
-    console.error('Mix playback failed:', err);
+    if (generation !== playbackGenerationRef.current) return;
 
+    console.error('Mix playback failed:', err);
     setIsPlaying(false);
-    setPlaybackError(
-      err.message || 'Unable to play this mix.'
-    );
+    setPlaybackError(err.message || 'Unable to play this mix.');
   }
 };
+
 
   // const playMixByObject = async (mix) => {
   //   try {

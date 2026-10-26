@@ -8,11 +8,15 @@ from django.db.models import Avg, Count
 from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
 from django.core.cache import cache
 from decimal import Decimal
-import uuid
-
+from django.db.models import Sum, Avg, Count, Value, FloatField, DecimalField
+from django.db.models.functions import Coalesce
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
 from dj_mix_management.models import Mix, MixTrack, MixStream, MixTip
 from dj_mix_management.api.serializers import (
-    MixSerializer, MixStreamUpdateSerializer, MixUploadSerializer, MixTrackSerializer,
+    DJAnalyticsSerializer, MixSerializer, MixStreamUpdateSerializer, MixUploadSerializer, MixTrackSerializer,
     MixStreamSerializer, MixTipSerializer, PublicMixSerializer
 )
 from system_management.backblazes3 import upload_to_backblaze_s3
@@ -618,4 +622,110 @@ def delete_mix_api(request, mix_id):
     return Response({
         'status':  'success',
         'message': 'Mix deleted successfully.'
+    }, status=status.HTTP_200_OK)
+
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_dj_analytics_api(request):
+    """Return analytics for the authenticated DJ's mixes."""
+
+    if not request.user.is_dj:
+        return Response({
+            'status': 'error',
+            'message': 'DJ access required.'
+        }, status=status.HTTP_403_FORBIDDEN)
+
+    mixes = Mix.objects.filter(dj=request.user)
+    streams = MixStream.objects.filter(mix__dj=request.user)
+    tips = MixTip.objects.filter(mix__dj=request.user)
+
+    mix_stats = mixes.aggregate(
+        total_plays=Coalesce(Sum('play_count'), 0)
+    )
+
+    stream_stats = streams.aggregate(
+        total_listening_seconds=Coalesce(
+            Sum('listen_time'),
+            0.0
+        ),
+        average_listening_seconds=Coalesce(
+            Avg('listen_time'),
+            0.0
+        ),
+        unique_listeners=Count('listener', distinct=True)
+    )
+
+    tip_stats = tips.aggregate(
+        total_tips=Count('id'),
+        total_earnings=Coalesce(
+            Sum('dj_amount'),
+            Value(
+                Decimal('0.00'),
+                output_field=DecimalField(
+                    max_digits=12,
+                    decimal_places=2
+                )
+            )
+        )
+    )
+
+    top_mixes_query = (
+        mixes
+        .annotate(
+            total_listening_seconds=Coalesce(
+                Sum('streams__listen_time'),
+                0.0
+            )
+        )
+        .order_by('-play_count', '-total_listening_seconds')[:5]
+    )
+
+    top_mixes = []
+
+    for mix in top_mixes_query:
+        mix_tip_stats = mix.tips.aggregate(
+            total_tips=Count('id'),
+            dj_earnings=Coalesce(
+                Sum('dj_amount'),
+                Value(
+                    Decimal('0.00'),
+                    output_field=DecimalField(
+                        max_digits=12,
+                        decimal_places=2
+                    )
+                )
+            )
+        )
+
+        top_mixes.append({
+            'id': mix.id,
+            'title': mix.title,
+            'play_count': mix.play_count or 0,
+            'total_listening_seconds': mix.total_listening_seconds,
+            'total_tips': mix_tip_stats['total_tips'],
+            'dj_earnings': mix_tip_stats['dj_earnings']
+        })
+
+    analytics = {
+        'total_mixes': mixes.count(),
+        'total_plays': mix_stats['total_plays'],
+        'total_listening_seconds': stream_stats[
+            'total_listening_seconds'
+        ],
+        'average_listening_seconds': stream_stats[
+            'average_listening_seconds'
+        ],
+        'unique_listeners': stream_stats['unique_listeners'],
+        'total_tips': tip_stats['total_tips'],
+        'total_earnings': tip_stats['total_earnings'],
+        'top_mixes': top_mixes
+    }
+
+    serializer = DJAnalyticsSerializer(analytics)
+
+    return Response({
+        'status': 'success',
+        'data': serializer.data
     }, status=status.HTTP_200_OK)

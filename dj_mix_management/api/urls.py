@@ -30,6 +30,7 @@ urlpatterns = [
     path('get_mix_charts_api/', views.get_mix_charts_api, name='get_mix_charts_api'),
     path('admin_moderate_mix_api/<int:mix_id>/', views.admin_moderate_mix_api, name='admin_moderate_mix_api'),
     path('delete_mix_api/<int:mix_id>/', views.delete_mix_api, name='delete_mix_api'),
+    path('get_dj_analytics_api/',views.get_dj_analytics_api,name='get_dj_analytics_api'),
 
 
 

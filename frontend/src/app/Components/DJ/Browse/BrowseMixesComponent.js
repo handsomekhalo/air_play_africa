@@ -306,6 +306,8 @@ const BrowseMixesComponent = () => {
   const listenTimerRef = useRef(null);
   const listenTimeRef = useRef(0);
   const lastPlaybackTimeRef = useRef(null);
+  const lastSyncedTimeRef = useRef(0);
+  const syncInProgressRef = useRef(false);
   const streamSessionRef = useRef(null);
   const [tippingMix, setTippingMix] = useState(null);
   const [tipToast, setTipToast] = useState(null);
@@ -430,6 +432,24 @@ const BrowseMixesComponent = () => {
   //     listenTimerRef.current = null;
   //   }
   // };
+  const syncListenTime = async () => {
+  const session = streamSessionRef.current;
+  const elapsed = Math.floor(listenTimeRef.current);
+
+  if (!session || elapsed <= lastSyncedTimeRef.current) return;
+  if (syncInProgressRef.current) return;
+
+  syncInProgressRef.current = true;
+
+  try {
+    await updateMixStream(session, elapsed);
+    lastSyncedTimeRef.current = elapsed;
+  } catch (err) {
+    console.error('Failed to sync listening time:', err);
+  } finally {
+    syncInProgressRef.current = false;
+  }
+};
 
 const startListenTimer = (session) => {
   stopListenTimer();

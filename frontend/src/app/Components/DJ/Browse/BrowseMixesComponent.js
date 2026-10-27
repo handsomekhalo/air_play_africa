@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { v4 as uuidv4 } from 'uuid';
 import { useAuthGuard } from '@/utils/useAuthGuard';
-import ListenerNav from '@/app/Components/Listener/ListenerNav';
+import DJNav from '@/app/Components/DJ/DJNav';
 import { TipSuccessToast } from '@/app/Components/Listener/TipModal';
 import { MixTipModal } from '@/app/Components/DJ/MixTipModal';
 import {
@@ -655,8 +655,9 @@ const playMixByObject = async (mix) => {
       `}</style>
 
       <audio ref={audioRef} onEnded={handleNext} />
-      <ListenerNav />
-
+      {/* <ListenerNav /> */}
+      <DJNav/>
+        
       <div style={{
         minHeight: '100vh',
         background: '#0a0a0a',

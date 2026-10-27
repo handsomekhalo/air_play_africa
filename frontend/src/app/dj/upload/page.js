@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthGuard } from '../../../utils/useAuthGuard';
 import { uploadMix } from '../../../utils/mixes_api_helper';
+import DJNav from '@/app/Components/DJ/DJNav';
 
 export default function DJUploadPage() {
   const router = useRouter();
@@ -59,6 +60,8 @@ export default function DJUploadPage() {
   if (!authorized) return null;
 
   return (
+    <>
+    <DJNav/>
     <main className="min-h-screen bg-[#0a0a0a] text-white p-6 md:p-10">
       <div className="max-w-2xl mx-auto">
         <button
@@ -181,5 +184,6 @@ export default function DJUploadPage() {
         </form>
       </div>
     </main>
+     </>
   );
 }

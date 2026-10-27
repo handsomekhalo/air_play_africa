@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthGuard } from '../../../utils/useAuthGuard';
 import { getMyMixes } from '../../../utils/mixes_api_helper';
+import DJNav from '@/app/Components/DJ/DJNav';
 
 export default function DJDashboardPage() {
   const router = useRouter();
@@ -63,6 +64,8 @@ export default function DJDashboardPage() {
   if (!authorized) return null;
 
   return (
+    <>
+      <DJNav />
     <main className="min-h-screen bg-[#0a0a0a] text-white p-6 md:p-10">
       <div className="max-w-6xl mx-auto">
 
@@ -164,6 +167,7 @@ export default function DJDashboardPage() {
         )}
       </div>
     </main>
+     </>
   );
 }
 

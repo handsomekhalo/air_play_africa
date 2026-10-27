@@ -272,7 +272,7 @@ export default function MyMixesPage() {
                               : 'Unpublished'}
                       </span>
 
-                      {mix.status === 'ready' &&
+                      {/* {mix.status === 'ready' &&
                         mix.is_published && (
                         <Link
                           href={`/m/${mix.id}`}
@@ -285,7 +285,7 @@ export default function MyMixesPage() {
                         >
                           View Mix
                         </Link>
-                      )}
+                      )} */}
                     </div>
                   </div>
                 </article>

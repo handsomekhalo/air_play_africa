@@ -413,23 +413,27 @@ const BrowseMixesComponent = () => {
   setIsPlaying(false);
 };
 
-  const recordStream = async (mix) => {
-    const session = uuidv4();
+ const recordStream = async (mix) => {
+  const session = uuidv4();
 
-    try {
-      await recordMixStream({
-        mixId: mix.id,
-        sessionId: session
-      });
+  try {
+    const response = await recordMixStream({
+      mixId: mix.id,
+      sessionId: session
+    });
 
-      console.log('Mix stream recorded:', mix.title);
-
-      startListenTimer(session);
-    } catch (err) {
-      console.error('Failed to record mix stream:', err);
+    if (response.counted === false) {
+      console.log('Owner preview — play not counted:', mix.title);
+      return;
     }
-  };
 
+    console.log('Mix stream recorded:', mix.title);
+    startListenTimer(session);
+
+  } catch (err) {
+    console.error('Failed to record mix stream:', err);
+  }
+};
   // Count actual played audio ranges.
 // This avoids counting paused time or seeking jumps.
 const getPlayedSeconds = () => {

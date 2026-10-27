@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -285,14 +286,30 @@ def play_mix_with_token_api(request, token):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def record_mix_stream_api(request):
-    """Records a mix stream session — same anti-fraud pattern as track streams."""
-    ip        = request.META.get('REMOTE_ADDR')
+    """Records a mix stream session, excluding the mix owner's plays."""
+
+    # Check ownership before creating a stream.
+    mix_id = request.data.get('mix')
+    mix = get_object_or_404(Mix, pk=mix_id)
+
+    if (
+        request.user.is_authenticated
+        and mix.dj_id == request.user.id
+    ):
+        return Response({
+            'status': 'success',
+            'data': None,
+            'counted': False,
+            'message': 'Owner preview: stream not counted.'
+        }, status=status.HTTP_200_OK)
+
+    ip = request.META.get('REMOTE_ADDR')
     cache_key = f'mix_stream_rate_{ip}'
     req_count = cache.get(cache_key, 0)
 
     if req_count > 30:
         return Response({
-            'status':  'error',
+            'status': 'error',
             'message': 'Rate limit exceeded.'
         }, status=status.HTTP_429_TOO_MANY_REQUESTS)
 
@@ -300,31 +317,44 @@ def record_mix_stream_api(request):
 
     data = request.data.copy()
     data['ip_address'] = ip
+
     if request.user.is_authenticated:
         data['listener'] = request.user.id
 
     serializer = MixStreamSerializer(data=data)
+
     if serializer.is_valid():
         try:
             stream = serializer.save()
 
-            # Update mix play count + merit score
+            # Update play count and merit score.
             mix = stream.mix
             mix.play_count = (mix.play_count or 0) + 1
-            avg_time         = mix.streams.aggregate(Avg('listen_time'))['listen_time__avg'] or 0
-            unique_listeners = mix.streams.values('session_id').distinct().count()
-            tips_count       = mix.tips.count()
-            mix.merit_score  = (unique_listeners * avg_time) + tips_count
+
+            avg_time = (
+                mix.streams.aggregate(Avg('listen_time'))['listen_time__avg']
+                or 0
+            )
+            unique_listeners = (
+                mix.streams.values('session_id').distinct().count()
+            )
+            tips_count = mix.tips.count()
+
+            mix.merit_score = (
+                unique_listeners * avg_time
+            ) + tips_count
+
             mix.save(update_fields=['play_count', 'merit_score'])
 
             return Response({
                 'status': 'success',
-                'data':   serializer.data
+                'data': serializer.data,
+                'counted': True
             }, status=status.HTTP_201_CREATED)
 
         except Exception:
             return Response({
-                'status':  'error',
+                'status': 'error',
                 'message': 'Stream already recorded for this session.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
@@ -332,6 +362,58 @@ def record_mix_stream_api(request):
         'status': 'error',
         'errors': serializer.errors
     }, status=status.HTTP_400_BAD_REQUEST)
+
+
+# @api_view(['POST'])
+# @permission_classes([AllowAny])
+# def record_mix_stream_api(request):
+#     """Records a mix stream session — same anti-fraud pattern as track streams."""
+#     ip        = request.META.get('REMOTE_ADDR')
+#     cache_key = f'mix_stream_rate_{ip}'
+#     req_count = cache.get(cache_key, 0)
+
+#     if req_count > 30:
+#         return Response({
+#             'status':  'error',
+#             'message': 'Rate limit exceeded.'
+#         }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+#     cache.set(cache_key, req_count + 1, timeout=60)
+
+#     data = request.data.copy()
+#     data['ip_address'] = ip
+#     if request.user.is_authenticated:
+#         data['listener'] = request.user.id
+
+#     serializer = MixStreamSerializer(data=data)
+#     if serializer.is_valid():
+#         try:
+#             stream = serializer.save()
+
+#             # Update mix play count + merit score
+#             mix = stream.mix
+#             mix.play_count = (mix.play_count or 0) + 1
+#             avg_time         = mix.streams.aggregate(Avg('listen_time'))['listen_time__avg'] or 0
+#             unique_listeners = mix.streams.values('session_id').distinct().count()
+#             tips_count       = mix.tips.count()
+#             mix.merit_score  = (unique_listeners * avg_time) + tips_count
+#             mix.save(update_fields=['play_count', 'merit_score'])
+
+#             return Response({
+#                 'status': 'success',
+#                 'data':   serializer.data
+#             }, status=status.HTTP_201_CREATED)
+
+#         except Exception:
+#             return Response({
+#                 'status':  'error',
+#                 'message': 'Stream already recorded for this session.'
+#             }, status=status.HTTP_400_BAD_REQUEST)
+
+#     return Response({
+#         'status': 'error',
+#         'errors': serializer.errors
+#     }, status=status.HTTP_400_BAD_REQUEST)
 
 
 # ─── Update Mix Stream Listen Time ───────────────────────────────

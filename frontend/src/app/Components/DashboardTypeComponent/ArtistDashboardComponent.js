@@ -11,7 +11,7 @@ import { Button } from "../DashboardUIComponents/UI/Button";
 import UploadFileComponent from "../Artists/UploadTrack/UploadFileComponent";
 // import UploadPage from "../Artists/uploadFile";
 import UploadPage from "../Artists/UploadTrack/uploadFile";
-import ProfileModal from "../../profile/profile_modall";
+// import ProfileModal from "../../profile/profile_modall";
 import { getCsrfToken } from "../../../utils/csrf";
 
 import {
@@ -28,17 +28,14 @@ import { getAllArtistEarnings, getMyTracks } from "../../../utils/artist";
 import {trackAnalyticsData} from "../Admin/UI/TrackAnalytics"
 import backendApi from "../../../utils/backendApi";
 import WithdrawalModal from '../Artists/WithdrawalModal';
-
-
+import ArtistNav from "../Artists/ArtistsNav";
+import ArtistProfileModal from "../Artists/ArtistProfileModal";
 
 export default function ArtistDashboardPage() {
   const [showUpload, setShowUpload] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
     const [profile, setProfile] = useState(null);
-    
-
     const router = useRouter();
-
   const [earnings, setEarnings] = useState(null);   // { balance_credits, total_earned, total_withdrawn }
   const [tracks, setTracks]     = useState([]);
   const [tracksLoading, setTracksLoading] = useState(true);
@@ -49,10 +46,6 @@ export default function ArtistDashboardPage() {
   const [showWithdrawal, setShowWithdrawal] = useState(false);
   const [tips, setTips]         = useState([]);
   const [tipsLoading, setTipsLoading] = useState(true);
-
-
-
-  
 
 // ── Load revenue timeseries ─────────────────────────────────────
 useEffect(() => {
@@ -95,49 +88,7 @@ useEffect(() => {
   fetchTips();
 }, []);
 
-  // Mock data (replace later with API calls)
-  // const revenueData = [
-  //   { date: "Mon", streams: 45, tips: 12, downloads: 8 },
-  //   { date: "Tue", streams: 52, tips: 18, downloads: 5 },
-  //   { date: "Wed", streams: 61, tips: 15, downloads: 12 },
-  //   { date: "Thu", streams: 48, tips: 22, downloads: 9 },
-  //   { date: "Fri", streams: 70, tips: 28, downloads: 15 },
-  //   { date: "Sat", streams: 85, tips: 35, downloads: 20 },
-  //   { date: "Sun", streams: 92, tips: 40, downloads: 18 },
-  // ];
-
-  // const tracks = [
-  //   {
-  //     id: "1",
-  //     title: "Ubuntu Spirit",
-  //     streams: 15420,
-  //     earnings: 154.2,
-  //     listenerScore: 87,
-  //     verifiedOrganic: true,
-  //     aiMood: "Uplifting",
-  //     aiGenre: "Afro-soul",
-  //   },
-  //   {
-  //     id: "2",
-  //     title: "Motherland Rhythms",
-  //     streams: 8932,
-  //     earnings: 89.32,
-  //     listenerScore: 92,
-  //     verifiedOrganic: true,
-  //     aiMood: "Energetic",
-  //     aiGenre: "Afrobeat",
-  //   },
-  //   {
-  //     id: "3",
-  //     title: "Sunset Dreams",
-  //     streams: 6124,
-  //     earnings: 61.24,
-  //     listenerScore: 78,
-  //     verifiedOrganic: false,
-  //     aiMood: "Mellow",
-  //     aiGenre: "Amapiano",
-  //   },
-  // ];
+ 
 
   // Add to ArtistDashboardComponent.js — replace mock data loading with:
 
@@ -162,7 +113,8 @@ useEffect(() => {
     })
     .catch((err) => {
       console.error('Failed to load artist profile:', err);
-      router.push('/artist-onboarding?step=1');
+
+      
     });
 }, [router]);
 
@@ -234,8 +186,22 @@ useEffect(() => {
 
   return (
     <div className="min-h-screen bg-background">
+    <ArtistNav
+      onUpload={() => setShowUpload(true)}
+      onWithdraw={() => setShowWithdrawal(true)}
+      onProfile={() => setShowProfile(true)}
+    />
+
+    {showProfile && (
+      <ArtistProfileModal
+        profile={profile}
+        onClose={() => setShowProfile(false)}
+      />
+    )}
+
+
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border bg-card/50 backdrop-blur-sm">
+      <header className=" border-border bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
@@ -248,38 +214,7 @@ useEffect(() => {
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setShowUpload(true)}
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Upload Track
-              </Button>
-
-
-               {/* Update the Withdraw Funds button */}
-              <Button
-                className="bg-gradient-to-r from-gold to-coral hover:opacity-90"
-                onClick={() => setShowWithdrawal(true)}
-              >
-                <Wallet className="h-4 w-4 mr-2" />
-                Withdraw Funds
-              </Button>
-
-               <button
-          onClick={() => setShowProfile(true)}
-          className="px-4 py-2 rounded bg-black text-white"
-        >
-          Profile
-        </button>
-
-
-        {showProfile && (
-        <ProfileModal onClose={() => setShowProfile(false)} />
-      )}
-
-            </div>
+           
           </div>
         </div>
       </header>
@@ -322,7 +257,7 @@ useEffect(() => {
       <main className="container mx-auto px-6 py-8">
         {/* Metrics */}
     {/* Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div id="artist-earnings" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <MetricCard
             title="Total Earnings"
             value={earningsLoading ? '...' : `R${parseFloat(earnings?.total_earned || 0).toFixed(2)}`}
@@ -341,15 +276,6 @@ useEffect(() => {
         variant="emerald"
       />
 
-          
-          {/* <MetricCard
-            title="Available Balance"
-            value={earningsLoading ? '...' : `R${parseFloat(earnings?.balance_credits || 0).toFixed(2)}`}
-            change="Ready to withdraw"
-            changeType="neutral"
-            icon={Music}
-            variant="emerald"
-          /> */}
           <MetricCard
             title="Total Withdrawn"
             value={earningsLoading ? '...' : `R${parseFloat(earnings?.total_withdrawn || 0).toFixed(2)}`}
@@ -379,13 +305,11 @@ useEffect(() => {
           <RevenueChart data={revenueData} />
         )}
       </div>
-        {/* <div className="mb-8">
-          <RevenueChart data={revenueData} />
-        </div> */}
-
-        {/* Track Analytics */}
-        {/* <TrackAnalytics tracks={tracks} /> */}
-        <TrackAnalytics />
+          {/* <TrackAnalytics /> */}
+          <div id="artist-tracks">
+            <TrackAnalytics />
+          </div>
+          
 
         {/* Tips History */}
 <div className="mt-8 rounded-xl border border-border bg-card p-6">
@@ -475,28 +399,7 @@ useEffect(() => {
             ))}
           </div>
 
-          {/* <div className="space-y-3">
-            {[
-              { date: "2024-01-15", amount: 245.8 },
-              { date: "2024-01-08", amount: 189.5 },
-              { date: "2024-01-01", amount: 312.2 },
-            ].map((payout, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between rounded-lg bg-muted/50 p-4 hover:bg-muted"
-              >
-                <div>
-                  <p className="font-medium">R{payout.amount.toFixed(2)}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {payout.date}
-                  </p>
-                </div>
-                <span className="rounded-full bg-emerald/10 px-3 py-1 text-xs font-medium text-emerald">
-                  Completed
-                </span>
-              </div>
-            ))}
-          </div> */}
+          
         </div>
       </main>
     </div>

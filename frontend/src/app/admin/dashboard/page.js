@@ -16,7 +16,6 @@ import { useAuthGuard } from '../../../utils/useAuthGuard';
 // ─── Withdrawal Row ──────────────────────────────────────────────
 function WithdrawalRow({ withdrawal, onAction }) {
 
-  useAuthGuard('/login', 'Admin');
   const [expanded, setExpanded]     = useState(false);
   const [processing, setProcessing] = useState(false);
   const [notes, setNotes]           = useState('');
@@ -155,6 +154,8 @@ function WithdrawalRow({ withdrawal, onAction }) {
 
 // ─── Main ────────────────────────────────────────────────────────
 export default function Admin_Dashboard() {
+  useAuthGuard('/login', 'Admin');
+
   const { authToken }  = useAuth();
   const [data, setData]               = useState(null);
   const [loading, setLoading]         = useState(true);

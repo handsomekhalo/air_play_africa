@@ -7,6 +7,8 @@ import backendApi from "@/utils/backendApi";
 import { v4 as uuidv4 } from 'uuid';
 import { useAuthGuard } from '@/utils/useAuthGuard';
 import ListenerNav from '@/app/Components/Listener/ListenerNav';
+import { useAuth } from "../../../../../../AuthContext";
+
 // import TipSuccessToast from '@/app/Components/Listener/TipSuccessToast'; 
 import { TipModal, TipSuccessToast } from '../../../Listener/TipModal';
 // import { getCsrfToken } from "@/utils/csrf"; 
@@ -392,6 +394,7 @@ function TrackAvatar({ track, size = 56, playing = false }) {
 
 const BrowseTracksComponent = () => {
   // useAuthGuard('/listener/login', 'Listener');
+  const { authToken } = useAuth();
   const authorized = useAuthGuard('/login');
 
 
@@ -587,28 +590,61 @@ useEffect(() => {
 
 //to filter between nexyt and previous track
 
+
 const playTrackByObject = async (track) => {
   try {
-    const csrfToken = await getCsrfToken();
     const res = await backendApi.get(
-      `/media_streaming_management_api/get_listener_play_token/${track.id}/`,
-      { headers: { "X-CSRFToken": csrfToken } }
+      `/media_streaming_management/proxy_get_play_token/${track.id}/`,
+      {
+        headers: {
+          Authorization: `Token ${authToken}`,
+        },
+      }
     );
 
-    const backendBase = (process.env.NEXT_PUBLIC_BACKEND_URL || '').trim() || 'http://localhost:8000';
-    const playUrl = `${backendBase}${res.data.play_url}`;
+    const playUrl = new URL(
+      res.data.play_url,
+      backendApi.defaults.baseURL
+    ).href;
 
     stopListenTimer();
+
     audioRef.current.src = playUrl;
     audioRef.current.load();
+
     await audioRef.current.play();
+
     setCurrentTrack(track);
     setIsPlaying(true);
     recordStream(track);
+
   } catch (err) {
     console.error("Playback failed:", err);
   }
 };
+
+// const playTrackByObject = async (track) => {
+//   try {
+//     const csrfToken = await getCsrfToken();
+//     const res = await backendApi.get(
+//       `/media_streaming_management_api/get_listener_play_token/${track.id}/`,
+//       { headers: { "X-CSRFToken": csrfToken } }
+//     );
+
+//     const backendBase = (process.env.NEXT_PUBLIC_BACKEND_URL || '').trim() || 'http://localhost:8000';
+//     const playUrl = `${backendBase}${res.data.play_url}`;
+
+//     stopListenTimer();
+//     audioRef.current.src = playUrl;
+//     audioRef.current.load();
+//     await audioRef.current.play();
+//     setCurrentTrack(track);
+//     setIsPlaying(true);
+//     recordStream(track);
+//   } catch (err) {
+//     console.error("Playback failed:", err);
+//   }
+// };
 
 if (!authorized) return null;
 

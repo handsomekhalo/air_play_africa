@@ -26,13 +26,11 @@ const [copied, setCopied] = useState(null);
       }
     );
 
-    // setCurrentTrack({
-    //   ...track,
-    //   playUrl: res.data.play_url,
-    // });
+ 
     setCurrentTrack({
   ...track,
-  playUrl: `http://127.0.0.1:8000${res.data.play_url}`,
+  // playUrl: `http://127.0.0.1:8000${res.data.play_url}`,
+  playUrl: res.data.play_url,
 });
 
   };
@@ -103,34 +101,7 @@ const trackAnalyticsData = tracks.map(t => ({
       </CardHeader>
 
       <CardContent>
-        {/* AUDIO PLAYER */}
-        {/* {currentTrack && (
-          <audio
-            key={currentTrack.id}
-            // src={`/api/tracks/${currentTrack.id}/preview/`}
-            // src={`/media_streaming_management_api/proxy_play_track_api/${currentTrack.id}/`}
-              src={`/media_streaming_management_api/proxy_play_track_api/${currentTrack.id}/`}
 
-            controls
-            autoPlay
-            className="w-full mb-4"
-          />
-        )} */}
-        {/* {currentTrack && (
-  <audio
-    key={currentTrack.id}
-    src={currentTrack.playUrl}
-    controls
-    autoPlay
-  />
-)} */}
-{/* {currentTrack && (
-  <audio
-    src={currentTrack.playUrl}
-    controls
-    autoPlay
-  />
-)} */}
 {currentTrack && (
   <audio
     key={currentTrack.id}
@@ -162,12 +133,22 @@ const trackAnalyticsData = tracks.map(t => ({
         <div className="flex-1">
           <h4 className="font-semibold">{track.title}</h4>
 
-<button
+
+          {tracks.find(t => t.id === track.id)?.status === 'ready' && (
+  <button
+    onClick={() => playTrack(tracks.find(t => t.id === track.id))}
+    className="text-sm text-primary hover:underline"
+  >
+    ▶ Play
+  </button>
+)}
+
+{/* <button
   onClick={() => playTrack(tracks.find(t => t.id === track.id))}
   className="text-sm text-primary hover:underline"
 >
   ▶ Play
-</button>
+</button> */}
 
 {/* Share link */}
 <button
@@ -181,12 +162,7 @@ const trackAnalyticsData = tracks.map(t => ({
 >
   {copied === track.id ? '✓ Copied!' : '🔗 Share'}
 </button>
-          {/* <button
-            onClick={() => playTrack(tracks.find(t => t.id === track.id))}
-            className="text-sm text-primary hover:underline"
-          >
-            ▶ Play
-          </button> */}
+          
 
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             {track.aiMood && (
@@ -199,12 +175,12 @@ const trackAnalyticsData = tracks.map(t => ({
                 {track.aiGenre}
               </Badge>
             )}
-            {track.verifiedOrganic && (
+            {/* {track.verifiedOrganic && (
               <Badge className="text-xs bg-gold text-charcoal">
                 <Award className="h-3 w-3 mr-1" />
                 Verified Organic
               </Badge>
-            )}
+            )} */}
           </div>
         </div>
       </div>
@@ -241,76 +217,7 @@ const trackAnalyticsData = tracks.map(t => ({
   ))}
 </div>
 
-        {/* <div className="space-y-4">
-          {tracks.map((track) => (
-            <div
-              key={track.id}
-              className="p-4 rounded-lg border border-border bg-card hover:bg-accent/5 transition-colors"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <h4 className="font-semibold">{track.title}</h4>
 
-                  <button
-                    // onClick={() => setCurrentTrack(track)}
-                    onClick={() => playTrack(track)}
-
-                    className="text-sm text-primary hover:underline"
-                  >
-                    ▶ Play
-                  </button>
-
-                  <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    {track.ai_mood && (
-                      <Badge variant="secondary" className="text-xs">
-                        {track.ai_mood}
-                      </Badge>
-                    )}
-
-                    {track.ai_genre && (
-                      <Badge variant="outline" className="text-xs">
-                        {track.ai_genre}
-                      </Badge>
-                    )}
-
-                    {track.verified_organic && (
-                      <Badge className="text-xs bg-gold text-charcoal">
-                        <Award className="h-3 w-3 mr-1" />
-                        Verified Organic
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <p className="text-xs text-muted-foreground">Streams</p>
-                  <p className="text-lg font-bold">
-                    {Number(track.streams || 0).toLocaleString()}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-xs text-muted-foreground">Earnings</p>
-                  <p className="text-lg font-bold text-emerald">
-                    R{Number(track.earnings || 0).toFixed(2)}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <TrendingUp className="h-3 w-3" />
-                    Listener Score
-                  </p>
-                  <p className="text-lg font-bold text-gold">
-                    {track.listener_score || 0}/100
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div> */}
       </CardContent>
     </Card>
   );

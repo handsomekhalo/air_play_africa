@@ -591,32 +591,6 @@ def get_play_token_api(request, track_id):
         "expires_at": expires_at.isoformat()
     })
 
-# @api_view(["GET"])
-# @permission_classes([IsAuthenticated])
-# def get_play_token_api(request, track_id):
-#     artist = request.user.artist
-#     track = get_object_or_404(Track, id=track_id)
-
-#     if track.artist != artist:
-#         return Response({"error": "Unauthorized"}, status=403)
-
-#     payload = {
-#         "track_id": track.id,
-#         "exp": (now() + timedelta(seconds=30)).timestamp()
-#     }
-
-#     token = signing.dumps(payload)
-
-#     return Response({
-#         "status": "success",
-#         # "play_url": f"/media_streaming_management_api/play/{token}/"
-#         "play_url":f"/media_streaming_management_api/play_with_token_api/{token}/"
-
-#     })
-
-
-
-
 
 
 
@@ -1504,7 +1478,8 @@ def get_artist_track_earnings_api(request):
             'message': 'Artist profile not found.'
         }, status=404)
 
-    tracks = Track.objects.filter(artist=artist, status='ready')
+    # tracks = Track.objects.filter(artist=artist, status='ready')
+    tracks = Track.objects.filter(artist=artist).order_by('-id')
 
     result = []
     for track in tracks:
